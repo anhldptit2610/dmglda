@@ -1,0 +1,17 @@
+{
+    "files.associations": {
+        "defs.h": "c",
+        "cpu.h": "c",
+        "rom.h": "c",
+        "interrupt.h": "c",
+        "mmu.h": "c",
+        "timer.h": "c",
+        "common.h": "c",
+        "stdlib.h": "c",
+        "ppu.h": "c",
+        "sdl.h": "c",
+        "gb.h": "c",
+        "disassembler.h": "c",
+        "dma.h": "c"
+    }
+}
