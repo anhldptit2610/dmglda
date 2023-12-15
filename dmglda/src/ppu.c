@@ -333,7 +333,8 @@ void ppu_do_output_pixel(gb_t *gb)
             } else {
                 color = ppu_do_get_color_from_palette(gb, gb->ppu.sprite_pixel.palette, gb->ppu.sprite_pixel.color);
                 gb->ppu.frame_buffer[gb->ppu.ly * 160 + gb->ppu.current_x] = 
-                        (gb->ppu.lcdc & LCDC_SPRITES_ENABLED) ? color : default_color[0];
+                        (gb->ppu.lcdc & LCDC_SPRITES_ENABLED) ? color : 
+                            ppu_do_get_color_from_palette(gb, PALETTE_BGP, gb->ppu.bg_window_pixel.color);
             }
         } else {
             unsigned int color = ppu_do_get_color_from_palette(gb, PALETTE_BGP, gb->ppu.bg_window_pixel.color);
