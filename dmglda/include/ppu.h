@@ -12,4 +12,4 @@ void ppu_init(gb_t *gb);
 void vram_write(gb_t *gb, uint16_t addr, uint8_t val);
 uint8_t vram_read(gb_t *gb, uint16_t addr);
 
-void ppu_do_fifo_clear(gb_t *gb);
+void ppu_do_fifo_clear(gb_t *gb, fifo_type_t fifo_type);

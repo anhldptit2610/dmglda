@@ -183,14 +183,37 @@ enum OAM_ATTRIBUTE {
     OAM_ATTRIBUTE_DMG_PALETTE = (1U << 4),
 };
 
+enum SPRITE_PRIORITY {
+    SPRITE_PRIORITY_NONE = 0xff,
+};
+
+enum BACKGROUND_PRIORITY {
+    BACKGROUND_PRIORITY_NONE = 0xff,
+};
+
 typedef enum PALETTE {
     PALETTE_BGP,
     PALETTE_OBP0,
     PALETTE_OBP1,
 } palette_t;
 
+typedef enum FIFO_TYPE {
+    FIFO_TYPE_SPRITE,
+    FIFO_TYPE_BG_WIN,
+} fifo_type_t;
+
+enum COLOR {
+    COLOR_WHITE,
+    COLOR_LIGHT_GRAY,
+    COLOR_DARK_GRAY,
+    COLOR_BLACK,
+};
+
 typedef struct fifo_entry {
     uint8_t color : 2;
+    uint8_t palette;
+    uint8_t sprite_priority;
+    uint8_t bg_priority;
     struct fifo_entry *next;
 } fifo_entry_t;
 
@@ -206,6 +229,7 @@ typedef struct pixel_fetcher {
     uint8_t tile_data_low;
     uint8_t tile_data_high;
     bool reset_status;
+    bool is_active;
     int x;                  // fetcher's X counter
 } pixel_fetcher_t;
 
@@ -214,4 +238,5 @@ typedef struct oam_entry {
     uint8_t x_pos;
     uint8_t tile_index;
     uint8_t attribute;
+    bool rendered;
 } oam_entry_t;

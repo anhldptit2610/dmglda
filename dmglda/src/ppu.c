@@ -31,35 +31,46 @@ uint32_t ppu_do_get_color_from_palette(gb_t *gb, palette_t palette, uint8_t colo
     return default_color[id];
 }
 
-void ppu_do_fifo_clear(gb_t *gb)
+void ppu_do_fifo_clear(gb_t *gb, fifo_type_t fifo_type)
 {
-    if (gb->ppu.bg_window_fifo.size > 0) {
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_fifo : &gb->ppu.sprite_fifo;
+
+    if (fifo->size > 0) {
         fifo_entry_t *tmp = NULL;
-        
-        while (gb->ppu.bg_window_fifo.head->next != NULL) {
-            tmp = gb->ppu.bg_window_fifo.head;
-            gb->ppu.bg_window_fifo.head = gb->ppu.bg_window_fifo.head->next;
+        while (fifo->head->next != NULL) {
+            tmp = fifo->head;
+            fifo->head = fifo->head->next;
             free(tmp);
-            gb->ppu.bg_window_fifo.size--;
+            fifo->size--;
         }
-        free(gb->ppu.bg_window_fifo.head);
-        gb->ppu.bg_window_fifo.size--;
+        free(fifo->head);
+        fifo->size--;
         tmp = NULL;
-        gb->ppu.bg_window_fifo.head = NULL;
-        gb->ppu.bg_window_fifo.tail = NULL;
+        fifo->head = NULL;
+        fifo->tail = NULL;
     }
 }
 
-void ppu_do_reset_fetcher(gb_t *gb)
+void ppu_do_prepare_for_mode3(gb_t *gb)
 {
     gb->ppu.bg_window_pf.reset_status = true;
+    gb->ppu.bg_window_pf.is_active = true;
     gb->ppu.bg_window_pf.state = 0;
     gb->ppu.bg_window_pf.x = 0;
+
+    gb->ppu.sprite_pf.state = 0;
+    gb->ppu.sprite_pf.is_active = false;
+
+    for (int i = 0; i < gb->ppu.oam_buffer_size; i++)
+        gb->ppu.oam_buffer[i].rendered = false;
+
     gb->ppu.current_x = 0;
-    ppu_do_fifo_clear(gb);
+    ppu_do_fifo_clear(gb, FIFO_TYPE_BG_WIN);
+    ppu_do_fifo_clear(gb, FIFO_TYPE_SPRITE);
 }
 
-fifo_entry_t *ppu_do_fifo_create_new_entry(gb_t *gb, uint8_t color)
+fifo_entry_t *ppu_do_fifo_create_new_entry(gb_t *gb, uint8_t color, uint8_t palette,
+                                                    uint8_t sprite_priority, uint8_t bg_priority)
 {
     fifo_entry_t *new = malloc(sizeof(fifo_entry_t));
 
@@ -67,44 +78,55 @@ fifo_entry_t *ppu_do_fifo_create_new_entry(gb_t *gb, uint8_t color)
         GB_Log("[ERROR] ppu_do_fifo_create_new_entry - malloc failed\n");
     new->next = NULL;
     new->color = color;
+    new->palette = palette;
+    new->sprite_priority = sprite_priority;
+    new->bg_priority = bg_priority;
     return new;
 }
 
-void ppu_do_fifo_push_a_pixel(gb_t *gb, uint8_t color)
+void ppu_do_fifo_push_a_pixel(gb_t *gb, fifo_type_t fifo_type, uint8_t color, uint8_t palette,
+                                        uint8_t sprite_priority, uint8_t bg_priority)
 {
-    if (gb->ppu.bg_window_fifo.size > 8) {
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_fifo : &gb->ppu.sprite_fifo;
+
+    if (fifo->size > 8) {
         GB_Log("[FAILED] FIFO size is full\n");
         return;
     }
-    fifo_entry_t *new = ppu_do_fifo_create_new_entry(gb, color);
+    fifo_entry_t *new = ppu_do_fifo_create_new_entry(gb, color, palette, sprite_priority, bg_priority);
 
     if (!new)
         return;
-    if (!gb->ppu.bg_window_fifo.size) {
-        gb->ppu.bg_window_fifo.head = gb->ppu.bg_window_fifo.tail = new;
+    if (!fifo->size) {
+        fifo->head = fifo->tail = new;
     } else {
-        gb->ppu.bg_window_fifo.tail->next = new;
-        gb->ppu.bg_window_fifo.tail = new;
+        fifo->tail->next = new;
+        fifo->tail = new;
     }
-    gb->ppu.bg_window_fifo.size++;
+    fifo->size++;
 }
 
-fifo_entry_t ppu_do_fifo_pop_a_pixel(gb_t *gb)
+int ppu_do_fifo_pop_a_pixel(gb_t *gb, fifo_type_t fifo_type)
 {
-    fifo_entry_t ret = {0, NULL}, *tmp = NULL;
+    fifo_entry_t *tmp = NULL;
+    fifo_entry_t *pixel = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_pixel : &gb->ppu.sprite_pixel;
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_fifo : &gb->ppu.sprite_fifo;
 
-    if (gb->ppu.bg_window_fifo.size <= 0) {
-        GB_Log("[FAILED] FIFO size is empty\n");
+    if (fifo->size <= 0) {
+        return -1;
     } else {
-        ret = *(gb->ppu.bg_window_fifo.head);
-        ret.next = NULL;
-        tmp = gb->ppu.bg_window_fifo.head;
-        gb->ppu.bg_window_fifo.head = gb->ppu.bg_window_fifo.head->next;
+        pixel->color = fifo->head->color;
+        pixel->palette = fifo->head->palette;
+        pixel->sprite_priority = fifo->head->sprite_priority;
+        pixel->bg_priority = fifo->head->bg_priority;
+        pixel->next = NULL;
+        tmp = fifo->head;
+        fifo->head = fifo->head->next;
         free(tmp);
         tmp = NULL;
-        gb->ppu.bg_window_fifo.size--;
+        fifo->size--;
     }
-    return ret;
+    return 0;
 }
 
 void ppu_do_oam_scan(gb_t *gb)
@@ -115,7 +137,6 @@ void ppu_do_oam_scan(gb_t *gb)
     if (gb->ppu.tick % 2 == 0) {
         oam_entry_addr = OAM_START_ADDR + i * 4;
         sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
-        printf("%04x\n", oam_entry_addr);
         if (gb->mem[oam_entry_addr + 1] > 0 &&
             gb->ppu.ly + 16 >= gb->mem[oam_entry_addr] &&
             gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height &&
@@ -129,36 +150,30 @@ void ppu_do_oam_scan(gb_t *gb)
         i++;
     }
     if (gb->ppu.tick == 80) {
-        exit(0);
         ppu_do_set_mode(gb, PPU_MODE_DRAWING);
-        ppu_do_reset_fetcher(gb);
-        if (gb->ppu.oam_buffer_size > 6) {
-            for (int i = 0; i < gb->ppu.oam_buffer_size; i++) {
-                printf("sprite #%d\n", i);
-                printf("y: 0x%02x\n", gb->ppu.oam_buffer[i].y_pos);
-                printf("x: 0x%02x\n", gb->ppu.oam_buffer[i].x_pos);
-                printf("tile_no: 0x%02x\n", gb->ppu.oam_buffer[i].tile_index);
-                printf("attribute: 0x%02x\n", gb->ppu.oam_buffer[i].attribute);
-            }
-            exit(0);
-        }
-        // printf("found %d sprite\n", gb->ppu.oam_buffer_size);
-        gb->ppu.oam_buffer_size = 0;
+        ppu_do_prepare_for_mode3(gb);
         gb->ppu.discard_bits = gb->ppu.scx % 8;
         i = 0;
     }
 }
 
-int ppu_do_fifo_push_pixels(gb_t *gb)
+int ppu_do_fifo_push_pixels(gb_t *gb, fifo_type_t fifo_type)
 {
-    uint8_t low_bit, high_bit;
+    uint8_t low_bit, high_bit, palette, bg_priority;
+    int current_oam_entry = gb->ppu.current_oam_entry;
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_fifo : &gb->ppu.sprite_fifo;
+    pixel_fetcher_t *fetcher = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_pf : &gb->ppu.sprite_pf;
 
-    if (gb->ppu.bg_window_fifo.size > 0)
+    if (fifo->size > 0 && fifo_type == FIFO_TYPE_BG_WIN)
         return 1;
+    palette = (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_DMG_PALETTE) ? PALETTE_OBP1 : PALETTE_OBP0;
+    bg_priority = (fifo_type == FIFO_TYPE_BG_WIN) ? BACKGROUND_PRIORITY_NONE :
+        (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_PRIORITY) ? 1 : 0;
     for (int i = 0; i < 8; i++) {
-        low_bit = (gb->ppu.bg_window_pf.tile_data_low >> (7 - i)) & 0x01;
-        high_bit = (gb->ppu.bg_window_pf.tile_data_high >> (7 - i)) & 0x01;
-        ppu_do_fifo_push_a_pixel(gb, (high_bit << 1) | low_bit);
+        low_bit = (fetcher->tile_data_low >> (7 - i)) & 0x01;
+        high_bit = (fetcher->tile_data_high >> (7 - i)) & 0x01;
+        ppu_do_fifo_push_a_pixel(gb, fifo_type, (high_bit << 1) | low_bit, palette,
+                                    SPRITE_PRIORITY_NONE, bg_priority);
     }
     return 0;
 }
@@ -167,6 +182,8 @@ void ppu_do_fetch_bg_window_pixels(gb_t *gb)
 {
     uint16_t addr, x_offset, y_offset, offset;
 
+    if (!gb->ppu.bg_window_pf.is_active)
+        return;
     switch (gb->ppu.bg_window_pf.state) {
     case 0:   
         addr = (gb->ppu.lcdc & LCDC_BG_TILE_MAP) ? 0x9c00 : 0x9800;
@@ -206,7 +223,7 @@ void ppu_do_fetch_bg_window_pixels(gb_t *gb)
         gb->ppu.bg_window_pf.state++;
         break;
     case 6:
-        if (!ppu_do_fifo_push_pixels(gb)) {
+        if (!ppu_do_fifo_push_pixels(gb, FIFO_TYPE_BG_WIN)) {
             gb->ppu.bg_window_pf.state++;
             gb->ppu.bg_window_pf.x++;
         }
@@ -219,29 +236,118 @@ void ppu_do_fetch_bg_window_pixels(gb_t *gb)
     }
 }
 
+void ppu_do_fetch_sprite_pixels(gb_t *gb)
+{
+    uint16_t addr, current_oam_entry, offset;
+
+    if (!gb->ppu.sprite_pf.is_active)
+        return;
+    switch (gb->ppu.sprite_pf.state) {
+    case 0:   
+        current_oam_entry = gb->ppu.current_oam_entry;
+        gb->ppu.sprite_pf.tile_number = gb->ppu.oam_buffer[current_oam_entry].tile_index;
+        gb->ppu.sprite_pf.state++;
+        break;
+    case 1:
+        gb->ppu.sprite_pf.state++;
+        break;
+    case 2:
+        offset = 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
+        addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
+        gb->ppu.sprite_pf.tile_data_low = gb->mem[addr + offset];
+        gb->ppu.sprite_pf.state++;
+        break;
+    case 3:
+        gb->ppu.sprite_pf.state++;
+        break;
+    case 4:
+        offset = 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
+        addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
+        gb->ppu.sprite_pf.tile_data_high = gb->mem[addr + offset + 1];
+        gb->ppu.sprite_pf.state++;
+        break;
+    case 5:
+        gb->ppu.sprite_pf.state++;
+        break;
+    case 6:
+        if (!ppu_do_fifo_push_pixels(gb, FIFO_TYPE_SPRITE)) {
+            gb->ppu.sprite_pf.state++;
+            gb->ppu.bg_window_pf.is_active = true;
+        }
+        break;
+    case 7:
+        gb->ppu.sprite_pf.state = 0;
+        gb->ppu.sprite_pf.is_active = false;
+        break;
+    default:
+        break;
+    }
+}
+
+int ppu_do_poll_oam_buffer(gb_t *gb)
+{
+    int ret = -1;
+
+    for (int i = 0; i < gb->ppu.oam_buffer_size; i++) {
+        if ((gb->ppu.oam_buffer[i].x_pos <= gb->ppu.current_x + 8) &&
+            (gb->ppu.oam_buffer[i].rendered == false)) {
+            gb->ppu.current_oam_entry = i;
+            gb->ppu.oam_buffer[i].rendered = true;
+            ret = 0;
+            break;
+        }
+    }
+    return ret;
+}
+
 void ppu_do_fetch_pixels(gb_t *gb)
 {
+    if (!ppu_do_poll_oam_buffer(gb)) {
+        gb->ppu.bg_window_pf.is_active = false;
+        gb->ppu.sprite_pf.is_active = true;
+        gb->ppu.sprite_pf.state = gb->ppu.bg_window_pf.state = 0;
+    }
+    ppu_do_fetch_sprite_pixels(gb);
     ppu_do_fetch_bg_window_pixels(gb);
 }
 
 void ppu_do_output_pixel(gb_t *gb)
 {
-    fifo_entry_t output_pixel;
+    int ret1, ret2;
+    static int i = 0;
+    unsigned int color;
 
-    if (gb->ppu.bg_window_fifo.size > 0) {
-        output_pixel = ppu_do_fifo_pop_a_pixel(gb);
+    ret1 = ppu_do_fifo_pop_a_pixel(gb, FIFO_TYPE_BG_WIN);
+    if (!ret1) {
         if (gb->ppu.discard_bits > 0) {
             gb->ppu.discard_bits--;
-        } else { 
-            unsigned int color = ppu_do_get_color_from_palette(gb, PALETTE_BGP, output_pixel.color);
+            return;
+        }
+        ret2 = ppu_do_fifo_pop_a_pixel(gb, FIFO_TYPE_SPRITE);
+        if (!ret2) {
+            if ((!gb->ppu.sprite_pixel.color) ||
+                (gb->ppu.sprite_pixel.bg_priority && gb->ppu.bg_window_pixel.color > 0)) {
+                color = ppu_do_get_color_from_palette(gb, PALETTE_BGP, gb->ppu.bg_window_pixel.color);
+                gb->ppu.frame_buffer[gb->ppu.ly * 160 + gb->ppu.current_x] = 
+                        (gb->ppu.lcdc & LCDC_BG_ENABLED) ? color : default_color[0];
+            } else {
+                color = ppu_do_get_color_from_palette(gb, gb->ppu.sprite_pixel.palette, gb->ppu.sprite_pixel.color);
+                gb->ppu.frame_buffer[gb->ppu.ly * 160 + gb->ppu.current_x] = 
+                        (gb->ppu.lcdc & LCDC_SPRITES_ENABLED) ? color : default_color[0];
+            }
+        } else {
+            unsigned int color = ppu_do_get_color_from_palette(gb, PALETTE_BGP, gb->ppu.bg_window_pixel.color);
             gb->ppu.frame_buffer[gb->ppu.ly * 160 + gb->ppu.current_x] = 
                     (gb->ppu.lcdc & LCDC_BG_ENABLED) ? color : default_color[0];
-            if (gb->ppu.current_x == 160) {
-                gb->ppu.current_x = 0;
-                ppu_do_set_mode(gb, PPU_MODE_HBLANK);
+        }
+        if (gb->ppu.current_x == 160) {
+            gb->ppu.current_x = 0;
+            ppu_do_set_mode(gb, PPU_MODE_HBLANK);
+            for (int i = 0; i < gb->ppu.oam_buffer_size; i++)
+                gb->ppu.oam_buffer[i].rendered = false;
+                gb->ppu.oam_buffer_size = 0;
             } else {
-                gb->ppu.current_x++;
-            }
+            gb->ppu.current_x++;
         }
     }
 }
@@ -302,7 +408,8 @@ void ppu_tick(gb_t *gb)
                     ppu_do_set_mode(gb, PPU_MODE_OAM_SCAN);
                 }
                 gb->ppu.ly++;
-                gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY : gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
+                gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY : 
+                                                            gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
                 gb->ppu.stat_interrupt_happen = 0;
                 gb->ppu.tick = 0;
             }
@@ -317,7 +424,8 @@ void ppu_tick(gb_t *gb)
                 } else {
                     gb->ppu.ly++;
                 }
-                gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY : gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
+                gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY : 
+                                                            gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
                 gb->ppu.stat_interrupt_happen = 0;
                 gb->ppu.tick = 0;
             }
