@@ -157,22 +157,38 @@ void ppu_do_oam_scan(gb_t *gb)
     }
 }
 
-int ppu_do_fifo_push_pixels(gb_t *gb, fifo_type_t fifo_type)
+int ppu_do_bg_fifo_push_pixels(gb_t *gb)
 {
     uint8_t low_bit, high_bit, palette, bg_priority;
-    int current_oam_entry = gb->ppu.current_oam_entry;
-    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_fifo : &gb->ppu.sprite_fifo;
-    pixel_fetcher_t *fetcher = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_window_pf : &gb->ppu.sprite_pf;
 
-    if (fifo->size > 0 && fifo_type == FIFO_TYPE_BG_WIN)
+    if (gb->ppu.bg_window_fifo.size > 0)
         return 1;
-    palette = (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_DMG_PALETTE) ? PALETTE_OBP1 : PALETTE_OBP0;
-    bg_priority = (fifo_type == FIFO_TYPE_BG_WIN) ? BACKGROUND_PRIORITY_NONE :
-        (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_PRIORITY) ? 1 : 0;
     for (int i = 0; i < 8; i++) {
-        low_bit = (fetcher->tile_data_low >> (7 - i)) & 0x01;
-        high_bit = (fetcher->tile_data_high >> (7 - i)) & 0x01;
-        ppu_do_fifo_push_a_pixel(gb, fifo_type, (high_bit << 1) | low_bit, palette,
+
+        low_bit = (gb->ppu.bg_window_pf.tile_data_low >> (7 - i)) & 0x01;
+        high_bit = (gb->ppu.bg_window_pf.tile_data_high >> (7 - i)) & 0x01;
+        ppu_do_fifo_push_a_pixel(gb, FIFO_TYPE_BG_WIN, (high_bit << 1) | low_bit, palette,
+                                    SPRITE_PRIORITY_NONE, BACKGROUND_PRIORITY_NONE);
+    }
+    return 0;
+}
+
+int ppu_do_sprite_fifo_push_pixels(gb_t *gb)
+{
+    uint8_t low_bit, high_bit, palette, bg_priority, offset;
+    int current_oam_entry = gb->ppu.current_oam_entry;
+
+    palette = (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_DMG_PALETTE) ? PALETTE_OBP1 : PALETTE_OBP0;
+    bg_priority = (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_PRIORITY) ? 1 : 0;
+    for (int i = 0; i < 8; i++) {
+        offset = 7 - i;
+        if (gb->ppu.oam_buffer[gb->ppu.current_oam_entry].attribute & OAM_ATTRIBUTE_X_FLIP)
+            offset = i;
+        else
+            offset = 7 - i;
+        low_bit = (gb->ppu.sprite_pf.tile_data_low >> (offset)) & 0x01;
+        high_bit = (gb->ppu.sprite_pf.tile_data_high >> (offset)) & 0x01;
+        ppu_do_fifo_push_a_pixel(gb, FIFO_TYPE_SPRITE, (high_bit << 1) | low_bit, palette,
                                     SPRITE_PRIORITY_NONE, bg_priority);
     }
     return 0;
@@ -223,7 +239,7 @@ void ppu_do_fetch_bg_window_pixels(gb_t *gb)
         gb->ppu.bg_window_pf.state++;
         break;
     case 6:
-        if (!ppu_do_fifo_push_pixels(gb, FIFO_TYPE_BG_WIN)) {
+        if (!ppu_do_bg_fifo_push_pixels(gb)) {
             gb->ppu.bg_window_pf.state++;
             gb->ppu.bg_window_pf.x++;
         }
@@ -238,8 +254,9 @@ void ppu_do_fetch_bg_window_pixels(gb_t *gb)
 
 void ppu_do_fetch_sprite_pixels(gb_t *gb)
 {
-    uint16_t addr, current_oam_entry, offset;
+    uint16_t addr, current_oam_entry, offset, sprite_height;
 
+    sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
     if (!gb->ppu.sprite_pf.is_active)
         return;
     switch (gb->ppu.sprite_pf.state) {
@@ -253,6 +270,8 @@ void ppu_do_fetch_sprite_pixels(gb_t *gb)
         break;
     case 2:
         offset = 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
+        if (gb->ppu.oam_buffer[gb->ppu.current_oam_entry].attribute & OAM_ATTRIBUTE_Y_FLIP)
+            offset = 2 * (sprite_height - 1 - (gb->ppu.ly + gb->ppu.scy) % 8);
         addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
         gb->ppu.sprite_pf.tile_data_low = gb->mem[addr + offset];
         gb->ppu.sprite_pf.state++;
@@ -262,6 +281,8 @@ void ppu_do_fetch_sprite_pixels(gb_t *gb)
         break;
     case 4:
         offset = 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
+        if (gb->ppu.oam_buffer[gb->ppu.current_oam_entry].attribute & OAM_ATTRIBUTE_Y_FLIP)
+            offset = 2 * (sprite_height - 1 - (gb->ppu.ly + gb->ppu.scy) % 8);
         addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
         gb->ppu.sprite_pf.tile_data_high = gb->mem[addr + offset + 1];
         gb->ppu.sprite_pf.state++;
@@ -270,7 +291,7 @@ void ppu_do_fetch_sprite_pixels(gb_t *gb)
         gb->ppu.sprite_pf.state++;
         break;
     case 6:
-        if (!ppu_do_fifo_push_pixels(gb, FIFO_TYPE_SPRITE)) {
+        if (!ppu_do_sprite_fifo_push_pixels(gb)) {
             gb->ppu.sprite_pf.state++;
             gb->ppu.bg_window_pf.is_active = true;
         }
