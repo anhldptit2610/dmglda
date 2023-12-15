@@ -44,6 +44,7 @@ typedef struct gb {
         uint8_t *content;
         bool boot_rom_unmapped;
         bool rom_loaded;
+        uint32_t rom_size;
     } rom;
 
     struct interrupt {
@@ -81,10 +82,12 @@ typedef struct gb {
         /* background/window components */
         pixel_fifo_t bg_window_fifo;
         pixel_fetcher_t bg_window_pf;
+        fifo_entry_t bg_window_pixel;
 
         /* sprite components */
         pixel_fifo_t sprite_fifo;
         pixel_fetcher_t sprite_pf;
+        fifo_entry_t sprite_pixel;
 
         /* oam components */
         oam_entry_t oam_buffer[10];
