@@ -181,7 +181,7 @@ int push_pixels_to_bg_window_fifo(gb_t *gb)
         low_bit = (gb->ppu.bg_window_pf.tile_data_low >> (7 - i)) & 0x01;
         high_bit = (gb->ppu.bg_window_pf.tile_data_high >> (7 - i)) & 0x01;
         push_a_pixel_to_fifo(gb, FIFO_TYPE_BG_WIN, (high_bit << 1) | low_bit, palette,
-                                    SPRITE_PRIORITY_NONE, BACKGROUND_PRIORITY_NONE);
+                                    SPRITE_PRIORITY_NONE, BG_PRIORITY_NONE);
     }
     return 0;
 }
@@ -190,10 +190,12 @@ int push_pixels_to_sprite_fifo(gb_t *gb)
 {
     uint8_t low_bit, high_bit, palette, bg_priority, offset, x_pos;
     int current_oam_entry = gb->ppu.current_oam_entry, discard_bits;
+    bool x_flip;
 
     discard_bits = 0;
     palette = (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_DMG_PALETTE) ? PALETTE_OBP1 : PALETTE_OBP0;
     x_pos = gb->ppu.oam_buffer[current_oam_entry].x_pos;
+    x_flip = gb->ppu.oam_buffer[gb->ppu.current_oam_entry].attribute & OAM_ATTRIBUTE_X_FLIP;
     bg_priority = (gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_PRIORITY) ? 1 : 0;
     if (x_pos < 8)
         discard_bits = 8 - x_pos;
@@ -204,10 +206,7 @@ int push_pixels_to_sprite_fifo(gb_t *gb)
         } else if (i < gb->ppu.sprite_fifo.size)
             continue;
         offset = 7 - i;
-        if (gb->ppu.oam_buffer[gb->ppu.current_oam_entry].attribute & OAM_ATTRIBUTE_X_FLIP)
-            offset = i;
-        else
-            offset = 7 - i;
+        offset = (x_flip) ? i : 7 - i;
         low_bit = (gb->ppu.sprite_pf.tile_data_low >> (offset)) & 0x01;
         high_bit = (gb->ppu.sprite_pf.tile_data_high >> (offset)) & 0x01;
         push_a_pixel_to_fifo(gb, FIFO_TYPE_SPRITE, (high_bit << 1) | low_bit, palette,
@@ -276,16 +275,16 @@ void fetch_bg_window_pixels(gb_t *gb)
 
 void fetch_sprite_pixels(gb_t *gb)
 {
-    uint16_t addr, current_oam_entry, offset, sprite_height;
-    bool y_flip, top_of_big_sprite;
+    uint16_t addr, offset;
+    int current_oam_entry = gb->ppu.current_oam_entry;
+    int sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
+    bool y_flip = gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_Y_FLIP;
+    bool top_of_big_sprite = gb->ppu.ly < (gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) + 8;
     uint8_t top, bottom;
 
     if (!gb->ppu.sprite_pf.is_active)
         return;
-    current_oam_entry = gb->ppu.current_oam_entry;
-    sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
-    y_flip = gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_Y_FLIP;
-    top_of_big_sprite = (gb->ppu.ly < ((gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) + 8));
+
     if (sprite_height == 16) {
         top = gb->ppu.oam_buffer[current_oam_entry].tile_index & 0xfe;
         bottom = gb->ppu.oam_buffer[current_oam_entry].tile_index | 0x01;
@@ -296,6 +295,7 @@ void fetch_sprite_pixels(gb_t *gb)
     } else {
         gb->ppu.sprite_pf.tile_number = gb->ppu.oam_buffer[current_oam_entry].tile_index;
     }
+
     switch (gb->ppu.sprite_pf.state) {
     case 0:   
         gb->ppu.sprite_pf.state++;
@@ -304,10 +304,8 @@ void fetch_sprite_pixels(gb_t *gb)
         gb->ppu.sprite_pf.state++;
         break;
     case 2:
-        offset = 2 * ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height);
-        if (y_flip) {
-            offset = 2 * (sprite_height - 1 - ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height));
-        }
+        offset = (!y_flip) ? 2 * ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height)
+                        : 2 * (sprite_height - 1 - ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height));
         addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
         gb->ppu.sprite_pf.tile_data_low = gb->mem[addr + offset];
         gb->ppu.sprite_pf.state++;
@@ -316,10 +314,8 @@ void fetch_sprite_pixels(gb_t *gb)
         gb->ppu.sprite_pf.state++;
         break;
     case 4:
-        offset = 2 * ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height);
-        if (y_flip) {
-            offset = 2 * (sprite_height - 1 - ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height));
-        }
+        offset = (!y_flip) ? 2 * ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height)
+                        : 2 * (sprite_height - 1 - ((gb->ppu.ly + gb->ppu.oam_buffer[current_oam_entry].y_pos - 16) % sprite_height));
         addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
         gb->ppu.sprite_pf.tile_data_high = gb->mem[addr + offset + 1];
         gb->ppu.sprite_pf.state++;
@@ -412,10 +408,10 @@ void output_pixels(gb_t *gb)
             set_ppu_mode(gb, PPU_MODE_HBLANK);
             for (int i = 0; i < gb->ppu.oam_buffer_size; i++)
                 gb->ppu.oam_buffer[i].rendered = false;
-                gb->ppu.oam_buffer_size = 0;
-                gb->ppu.rendered_sprites = 0;
-            } else {
-                gb->ppu.current_x++;
+            gb->ppu.oam_buffer_size = 0;
+            gb->ppu.rendered_sprites = 0;
+        } else {
+            gb->ppu.current_x++;
         }
     }
 }
