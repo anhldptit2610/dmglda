@@ -88,6 +88,7 @@ typedef struct gb {
         pixel_fifo_t sprite_fifo;
         pixel_fetcher_t sprite_pf;
         fifo_entry_t sprite_pixel;
+        int rendered_sprites;
 
         /* oam components */
         oam_entry_t oam_buffer[10];

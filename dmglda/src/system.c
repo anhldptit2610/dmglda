@@ -14,8 +14,8 @@ gb_t *gb_init(void)
 
 void gb_deinit(gb_t *gb)
 {
-    ppu_do_fifo_clear(gb, FIFO_TYPE_BG_WIN);
-    ppu_do_fifo_clear(gb, FIFO_TYPE_SPRITE);
+    clear_fifo(gb, FIFO_TYPE_BG_WIN);
+    clear_fifo(gb, FIFO_TYPE_SPRITE);
     rom_unload(gb);
     free(gb->ppu.frame_buffer);
     free(gb);
