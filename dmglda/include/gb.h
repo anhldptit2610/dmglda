@@ -80,9 +80,13 @@ typedef struct gb {
         ppu_mode_t mode;
 
         /* background/window components */
-        pixel_fifo_t bg_window_fifo;
-        pixel_fetcher_t bg_window_pf;
-        fifo_entry_t bg_window_pixel;
+        pixel_fifo_t bg_win_fifo;
+        pixel_fetcher_t bg_win_pf;
+        fifo_entry_t bg_win_pixel;
+        bool draw_window;
+        uint16_t window_line_cnt;
+        bool draw_window_this_line;
+        bool this_frame_has_window;
 
         /* sprite components */
         pixel_fifo_t sprite_fifo;
@@ -91,9 +95,11 @@ typedef struct gb {
         int rendered_sprites;
 
         /* oam components */
-        oam_entry_t oam_buffer[10];
-        int current_oam_entry;
-        int oam_buffer_size;
+        oam_entry_t oam_buffer[40];
+        uint16_t current_oam_entry;
+        uint16_t oam_buffer_size;
+
+        bool pixel_shifter_active;
 
         uint8_t current_x;
         unsigned int *frame_buffer;

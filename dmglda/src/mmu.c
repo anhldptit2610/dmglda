@@ -50,6 +50,8 @@ uint8_t mmu_read(gb_t *gb, uint16_t addr)
         ret = bootrom[addr];
     } else if (addr <= 0x7fff) {
         ret = rom_read(gb, addr);
+    } else if (addr >= 0xe000 && addr <= 0xfdff) {
+        ret = 0xff;
     } else {
         ret = gb->mem[addr];
     }
@@ -60,6 +62,8 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
 {
     if (addr >= 0xe000 && addr <= 0xfdff)
         addr -= 0x2000;
+    if (addr >= 0xfea0 && addr <= 0xfeff)
+        return;
     if (addr == INTERRUPT_IE_REGISTER || addr == INTERRUPT_IF_REGISTER) {
         interrupt_write(gb, addr, val);
     } else if (addr == TIMER_DIV_REGISTER || addr == TIMER_TAC_REGISTER || addr == TIMER_TIMA_REGISTER ||
@@ -77,7 +81,9 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
         gb->dma.mode = DMA_MODE_SETUP;
     } else if (addr == 0xff50) {
         gb->rom.boot_rom_unmapped = true;
-    }
-    else
+    } else if (addr >= 0xe000 && addr <= 0xfdff) {
+        return;
+    } else if (addr >= 0x8000) {
         gb->mem[addr] = val;
+    }
 }

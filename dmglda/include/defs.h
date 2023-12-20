@@ -188,7 +188,7 @@ enum SPRITE_PRIORITY {
 };
 
 enum BACKGROUND_PRIORITY {
-    BACKGROUND_PRIORITY_NONE = 0xff,
+    BG_PRIORITY_NONE = 0xff,
 };
 
 typedef enum PALETTE {
