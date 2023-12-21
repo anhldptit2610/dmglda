@@ -9,3 +9,7 @@
 
 uint8_t mmu_read(gb_t *gb, uint16_t addr);
 void mmu_write(gb_t *gb, uint16_t addr, uint8_t val);
+
+/* only use for CPU */
+void vram_write(gb_t *gb, uint16_t addr, uint8_t val);
+uint8_t vram_read(gb_t *gb, uint16_t addr);
