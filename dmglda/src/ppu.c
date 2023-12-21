@@ -80,8 +80,10 @@ fifo_entry_t *create_new_fifo_entry(gb_t *gb, uint8_t color, uint8_t palette,
 {
     fifo_entry_t *new = malloc(sizeof(fifo_entry_t));
 
-    if (!new)
+    if (!new) {
         GB_Log("[ERROR] ppu_do_fifo_create_new_entry - malloc failed\n");
+        return NULL;
+    }
     new->next = NULL;
     new->color = color;
     new->palette = palette;
@@ -96,9 +98,8 @@ void push_a_pixel_to_fifo(gb_t *gb, fifo_type_t fifo_type, uint8_t color, uint8_
     pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
     fifo_entry_t *new;
 
-    if (fifo->size > 8) {
+    if (fifo->size > 8)
         return;
-    }
     new = create_new_fifo_entry(gb, color, palette, sprite_priority, bg_priority);
     if (!new)
         return;
@@ -134,6 +135,18 @@ int pop_a_pixel_from_fifo(gb_t *gb, fifo_type_t fifo_type)
     return 0;
 }
 
+fifo_entry_t *get_access_to_fifo_entry(gb_t *gb, fifo_type_t fifo_type, int n)
+{
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_SPRITE) ? &gb->ppu.sprite_fifo : &gb->ppu.bg_win_fifo;
+    fifo_entry_t *tmp = fifo->head;
+
+    while (n > 0) {
+        tmp = tmp->next;
+        n--;
+    }
+    return tmp;
+}
+
 int cmp_func(const void *a, const void *b)
 {
     oam_entry_t *entryA = (oam_entry_t *)a;
@@ -150,14 +163,14 @@ void sort_oam_buffer(gb_t *gb)
 void scan_oam(gb_t *gb)
 {
     static int i;
-    uint16_t oam_entry_addr, sprite_height;
 
     if (gb->ppu.tick % 2 == 0) {
-        oam_entry_addr = OAM_START_ADDR + i * 4;
-        sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
-        if (gb->mem[oam_entry_addr + 1] > 0 &&
+        uint16_t oam_entry_addr = OAM_START_ADDR + i * 4;
+        uint16_t sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
+        if (gb->mem[oam_entry_addr + 1] > 0 && gb->mem[oam_entry_addr + 1] < 160 &&
             gb->ppu.ly + 16 >= gb->mem[oam_entry_addr] &&
-            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height) {
+            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height &&
+            gb->ppu.oam_buffer_size < 10) {
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].y_pos = gb->mem[oam_entry_addr];
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].x_pos = gb->mem[oam_entry_addr + 1];
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].tile_index = gb->mem[oam_entry_addr + 2];
@@ -177,14 +190,12 @@ void scan_oam(gb_t *gb)
 
 int push_pixels_to_bg_win_fifo(gb_t *gb)
 {
-    uint8_t low_bit, high_bit, palette, bg_priority;
-
     if (gb->ppu.bg_win_fifo.size > 0)
         return 1;
     for (int i = 0; i < 8; i++) {
-        low_bit = (gb->ppu.bg_win_pf.tile_data_low >> (7 - i)) & 0x01;
-        high_bit = (gb->ppu.bg_win_pf.tile_data_high >> (7 - i)) & 0x01;
-        push_a_pixel_to_fifo(gb, FIFO_TYPE_BG_WIN, (high_bit << 1) | low_bit, PALETTE_BGP,
+        uint8_t low_bit = (gb->ppu.bg_win_pf.tile_data_low >> (7 - i)) & 0x01;
+        uint8_t high_bit = (gb->ppu.bg_win_pf.tile_data_high >> (7 - i)) & 0x01;
+        push_a_pixel_to_fifo(gb, FIFO_TYPE_BG_WIN, high_bit << 1 | low_bit, PALETTE_BGP,
                                     SPRITE_PRIORITY_NONE, BG_PRIORITY_NONE);
     }
     return 0;
@@ -192,7 +203,6 @@ int push_pixels_to_bg_win_fifo(gb_t *gb)
 
 int push_pixels_to_sprite_fifo(gb_t *gb)
 {
-    uint8_t low_bit, high_bit, offset;
     uint16_t current_oam_entry = gb->ppu.current_oam_entry, discard_bits = 0;
     bool obj_palette = gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_DMG_PALETTE;
     uint8_t palette = (obj_palette) ? PALETTE_OBP1 : PALETTE_OBP0;
@@ -203,17 +213,22 @@ int push_pixels_to_sprite_fifo(gb_t *gb)
     if (x_pos < 8)
         discard_bits = 8 - x_pos;
     for (int i = 0; i < 8; i++) {
-        if (discard_bits > 0) {
-            discard_bits--;
-            continue;
-        }
-        if (i < gb->ppu.sprite_fifo.size)
-            continue;
-        offset = (x_flip) ? i : 7 - i;
-        low_bit = (gb->ppu.sprite_pf.tile_data_low >> offset) & 0x01;
-        high_bit = (gb->ppu.sprite_pf.tile_data_high >> offset) & 0x01;
-        push_a_pixel_to_fifo(gb, FIFO_TYPE_SPRITE, (high_bit << 1) | low_bit, palette,
+        uint8_t offset = (x_flip) ? i : 7 - i;
+        uint8_t low_bit = (gb->ppu.sprite_pf.tile_data_low >> offset) & 0x01;
+        uint8_t high_bit = (gb->ppu.sprite_pf.tile_data_high >> offset) & 0x01;
+        if (i < gb->ppu.sprite_fifo.size) {
+            fifo_entry_t *tmp = get_access_to_fifo_entry(gb, FIFO_TYPE_SPRITE, i);
+            if (!tmp->color && (high_bit << 1 | low_bit) > 0) {
+                // if the entry in the sprite fifo is not opaque, then replace it
+                // with the overlap pixel whose color is opaque
+                tmp->color = high_bit << 1 | low_bit;
+                tmp->bg_priority = bg_priority;
+                tmp->palette = palette;
+            }
+        } else {
+            push_a_pixel_to_fifo(gb, FIFO_TYPE_SPRITE, high_bit << 1 | low_bit, palette,
                                     SPRITE_PRIORITY_NONE, bg_priority);
+        }
     }
     return 0;
 }
@@ -226,16 +241,13 @@ void fetch_bg_win_pixels(gb_t *gb)
     if (!gb->ppu.bg_win_pf.is_active)
         return;
     switch (gb->ppu.bg_win_pf.state) {
-    case 0:   
-        if (window_triggered) {
-            addr = (gb->ppu.lcdc & LCDC_WINDOW_TILE_MAP) ? 0x9c00 : 0x9800;
-            x_offset = gb->ppu.bg_win_pf.x & 0x1f;
-            y_offset = 32 * (gb->ppu.window_line_cnt / 8);
-        } else {
-            addr = (gb->ppu.lcdc & LCDC_BG_TILE_MAP) ? 0x9c00 : 0x9800;
-            x_offset = (gb->ppu.bg_win_pf.x + gb->ppu.scx / 8) & 0x1f;
-            y_offset = 32 * (((gb->ppu.ly + gb->ppu.scy) & 0xff) / 8);
-        }
+    case 0:
+        addr = (window_triggered) ? ((gb->ppu.lcdc & LCDC_WINDOW_TILE_MAP) ? 0x9c00 : 0x9800) 
+                                  : ((gb->ppu.lcdc & LCDC_BG_TILE_MAP) ? 0x9c00 : 0x9800);
+        x_offset = (window_triggered) ? gb->ppu.bg_win_pf.x & 0x1f
+                                      : (gb->ppu.bg_win_pf.x + gb->ppu.scx / 8) & 0x1f;
+        y_offset = (window_triggered) ? 32 * (gb->ppu.window_line_cnt / 8)
+                                      : 32 * (((gb->ppu.ly + gb->ppu.scy) & 0xff) / 8);
         addr += (x_offset + y_offset) & 0x3ff;
         gb->ppu.bg_win_pf.tile_number = gb->mem[addr];
         gb->ppu.bg_win_pf.state++;
@@ -245,10 +257,7 @@ void fetch_bg_win_pixels(gb_t *gb)
         break;
     case 2:
         addr = (gb->ppu.lcdc & LCDC_BG_WINDOW_TILESET) ? 0x8000 : 0x9000;
-        if (window_triggered)
-            offset = 2 * (gb->ppu.window_line_cnt % 8);
-        else
-            offset = 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
+        offset = (window_triggered) ? 2 * (gb->ppu.window_line_cnt % 8) : 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
         addr = (addr == 0x8000) ? addr + 16 * (uint8_t)gb->ppu.bg_win_pf.tile_number 
                                 : addr + 16 * (int8_t)gb->ppu.bg_win_pf.tile_number;
         gb->ppu.bg_win_pf.tile_data_low = gb->mem[addr + offset];
@@ -262,8 +271,9 @@ void fetch_bg_win_pixels(gb_t *gb)
         if (gb->ppu.bg_win_pf.reset_status) {     /* if it's the first time of a scanline, reset to step 1. */
             gb->ppu.bg_win_pf.state = 0;
             gb->ppu.bg_win_pf.reset_status = false;
-        } else
+        } else {
             gb->ppu.bg_win_pf.state++;
+        }
         break;
     case 5:
         gb->ppu.bg_win_pf.state++;
@@ -291,18 +301,15 @@ void fetch_sprite_pixels(gb_t *gb)
     int sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
     bool y_flip = gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_Y_FLIP;
     bool top_of_big_sprite = gb->ppu.ly < (y_pos - 16) + 8;
-    uint8_t top, bottom;
 
     if (!gb->ppu.sprite_pf.is_active)
         return;
 
     if (sprite_height == 16) {
-        top = tile_index & 0xfe;
-        bottom = tile_index | 0x01;
-        if (top_of_big_sprite)
-            gb->ppu.sprite_pf.tile_number = (!y_flip) ? top : bottom;
-        else if (!top_of_big_sprite)
-            gb->ppu.sprite_pf.tile_number = (!y_flip) ? bottom : top;
+        uint8_t top = tile_index & 0xfe;
+        uint8_t bottom = tile_index | 0x01;
+        gb->ppu.sprite_pf.tile_number = (top_of_big_sprite) ? ((!y_flip) ? top : bottom) 
+                                                            : ((!y_flip) ? bottom : top);
     } else {
         gb->ppu.sprite_pf.tile_number = tile_index;
     }
