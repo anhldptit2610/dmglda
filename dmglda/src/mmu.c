@@ -20,50 +20,18 @@ static unsigned const char bootrom[256] =
     0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20, 0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
 };
 
-uint8_t mmu_read(gb_t *gb, uint16_t addr)
+void hram_write(gb_t *gb, uint16_t addr, uint8_t val)
 {
-    uint8_t ret;
-
-    if (addr >= 0xfea0 && addr <= 0xfeff) {
-        GB_Error("[ERROR] Address %04x is not readable.\n");
-        ret = 0xff;
-    }
-    if (addr >= 0xe000 && addr <= 0xfdff)
-        addr -= 0x2000;
-    if (addr == INTERRUPT_IE_REGISTER || addr == INTERRUPT_IF_REGISTER) {
-        ret = interrupt_read(gb, addr);
-    } else if (addr == TIMER_DIV_REGISTER || addr == TIMER_TAC_REGISTER || addr == TIMER_TIMA_REGISTER ||
-            addr == TIMER_TMA_REGISTER) {
-        ret = timer_read(gb, addr);
-    } else if (addr == PPU_LCDC_REGISTER || addr == PPU_STAT_REGISTER || addr == PPU_SCY_REGISTER ||
-            addr == PPU_SCX_REGISTER || addr == PPU_LY_REGISTER ||
-            addr == PPU_BGP_REGISTER || addr == PPU_OBP0_REGISTER || addr == PPU_OBP1_REGISTER ||
-            addr == PPU_WY_REGISTER || addr == PPU_WX_REGISTER) {
-        ret = ppu_read(gb, addr);
-    } else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR) {
-        ret = vram_read(gb, addr);
-    } else if (addr == DMA_REGISTER) {
-        ret = gb->dma.reg;
-    } else if (addr == JOYPAD_JOYP_REGISTER) {
-        ret = 0xff;
-    } else if (addr >= 0x0000 && addr <= 0x00ff && !gb->rom.boot_rom_unmapped) {
-        ret = bootrom[addr];
-    } else if (addr <= 0x7fff) {
-        ret = rom_read(gb, addr);
-    } else if (addr >= 0xe000 && addr <= 0xfdff) {
-        ret = 0xff;
-    } else {
-        ret = gb->mem[addr];
-    }
-    return ret;
+    gb->mem[addr] = val;
 }
 
-void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
+uint8_t hram_read(gb_t *gb, uint16_t addr)
 {
-    if (addr >= 0xe000 && addr <= 0xfdff)
-        addr -= 0x2000;
-    if (addr >= 0xfea0 && addr <= 0xfeff)
-        return;
+    return gb->mem[addr];
+}
+
+void io_write(gb_t *gb, uint16_t addr, uint8_t val)
+{
     if (addr == INTERRUPT_IE_REGISTER || addr == INTERRUPT_IF_REGISTER) {
         interrupt_write(gb, addr, val);
     } else if (addr == TIMER_DIV_REGISTER || addr == TIMER_TAC_REGISTER || addr == TIMER_TIMA_REGISTER ||
@@ -74,16 +42,164 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
             addr == PPU_BGP_REGISTER || addr == PPU_OBP0_REGISTER || addr == PPU_OBP1_REGISTER ||
             addr == PPU_WY_REGISTER || addr == PPU_WX_REGISTER) {
         ppu_write(gb, addr, val);
-    } else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR) {
-        vram_write(gb, addr, val);
     } else if (addr == DMA_REGISTER) {
         gb->dma.reg = val;
         gb->dma.mode = DMA_MODE_SETUP;
-    } else if (addr == 0xff50) {
+    } else if (addr == JOYPAD_JOYP_REGISTER)  {
+        joypad_write(gb, val);
+    } else if (addr == 0xff50 && val == 1) {
         gb->rom.boot_rom_unmapped = true;
-    } else if (addr >= 0xe000 && addr <= 0xfdff) {
-        return;
-    } else if (addr >= 0x8000) {
-        gb->mem[addr] = val;
+    } 
+}
+
+uint8_t io_read(gb_t *gb, uint16_t addr)
+{
+    uint8_t ret;
+
+    if (addr == INTERRUPT_IE_REGISTER || addr == INTERRUPT_IF_REGISTER) {
+        ret = interrupt_read(gb, addr);
+    } else if (addr == TIMER_DIV_REGISTER || addr == TIMER_TAC_REGISTER || addr == TIMER_TIMA_REGISTER ||
+            addr == TIMER_TMA_REGISTER) {
+        ret = timer_read(gb, addr);
+    } else if (addr == PPU_LCDC_REGISTER || addr == PPU_STAT_REGISTER || addr == PPU_SCY_REGISTER ||
+            addr == PPU_SCX_REGISTER || addr == PPU_LY_REGISTER ||
+            addr == PPU_BGP_REGISTER || addr == PPU_OBP0_REGISTER || addr == PPU_OBP1_REGISTER ||
+            addr == PPU_WY_REGISTER || addr == PPU_WX_REGISTER) {
+        ret = ppu_read(gb, addr);
+    } else if (addr == DMA_REGISTER) {
+        ret = gb->dma.reg;
+    } else if (addr == JOYPAD_JOYP_REGISTER) {
+        ret = joypad_read(gb);
+    } else if (addr == 0xff01) {
+        ret = 0xff;
     }
+    return ret;
+}
+
+void oam_write(gb_t *gb, uint16_t addr, uint8_t val)
+{
+    if (gb->ppu.mode == PPU_MODE_HBLANK || gb->ppu.mode == PPU_MODE_VBLANK)
+        gb->mem[addr] = val; 
+}
+
+uint8_t oam_read(gb_t *gb, uint16_t addr)
+{
+    uint8_t ret = 0xff;
+
+    if (gb->ppu.mode == PPU_MODE_HBLANK || gb->ppu.mode == PPU_MODE_VBLANK)
+        ret = gb->mem[addr];
+    return ret;
+}
+
+void vram_write(gb_t *gb, uint16_t addr, uint8_t val)
+{
+    if (gb->ppu.mode != PPU_MODE_DRAWING)
+        gb->mem[addr] = val;
+}
+
+uint8_t vram_read(gb_t *gb, uint16_t addr)
+{
+    uint8_t ret = 0xff;
+
+    if (gb->ppu.mode != PPU_MODE_DRAWING)
+        ret = gb->mem[addr];
+    return ret;
+}
+
+void wram_write(gb_t *gb, uint16_t addr, uint8_t val)
+{
+    gb->mem[addr] = val;
+}
+
+uint8_t wram_read(gb_t *gb, uint16_t addr)
+{
+    uint8_t ret;
+
+    ret = gb->mem[addr];
+    return ret;
+}
+
+uint8_t mbc0_read(gb_t *gb, uint16_t addr)
+{
+    uint8_t ret;
+
+    if (addr >= 0x0000 && addr <= 0x00ff && !gb->rom.boot_rom_unmapped)
+        ret = bootrom[addr];
+    else
+        ret = rom_read(gb, addr);
+    return ret;
+}
+
+uint8_t mbc_read(gb_t *gb, mbc_type_t mbc_type, uint16_t addr)
+{
+    uint8_t ret;
+
+    switch (mbc_type) {
+    case MBC0:
+        ret = mbc0_read(gb, addr);        
+        break;
+    default:
+        break;
+    }
+}
+
+void mbc_write(gb_t *gb, mbc_type_t mbc_type, uint16_t addr, uint8_t val)
+{
+    switch (mbc_type) {
+    case MBC0:
+        break;
+    default:
+        break;
+    }
+}
+
+uint8_t mmu_read(gb_t *gb, uint16_t addr)
+{
+    uint8_t ret;
+
+    if (addr >= 0xe000 && addr <= 0xfdff)
+        addr -= 0x2000;
+
+    if (addr == 0xffff)
+        ret = interrupt_read(gb, addr);
+    else if (addr >= HRAM_START_ADDR && addr <= HRAM_END_ADDR)
+        ret = hram_read(gb, addr);
+    else if (addr >= 0xff00 && addr <= 0xff7f)
+        ret = io_read(gb, addr);
+    else if (addr >= 0xfea0 && addr <= 0xfeff)
+        ret = 0xff;
+    else if (addr >= OAM_START_ADDR && addr <= OAM_END_ADDR)
+        ret = oam_read(gb, addr);
+    else if (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR)
+        ret = wram_read(gb, addr);
+    else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
+        ret = vram_read(gb, addr);
+    else if (addr < 0x8000)
+        ret = mbc_read(gb, gb->rom.infos.type, addr);
+    else
+        ret = 0xff;
+    return ret;
+}
+
+void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
+{
+    if (addr >= 0xe000 && addr <= 0xfdff)
+        addr -= 0x2000;
+
+    if (addr == 0xffff)
+        interrupt_write(gb, addr, val);
+    else if (addr >= HRAM_START_ADDR && addr <= HRAM_END_ADDR)
+        hram_write(gb, addr, val);
+    else if (addr >= 0xff00 && addr <= 0xff7f)
+        io_write(gb, addr, val);
+    else if (addr >= 0xfea0 && addr <= 0xfeff)
+        return;
+    else if (addr >= OAM_START_ADDR && addr <= OAM_END_ADDR)
+        oam_write(gb, addr, val);
+    else if (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR)
+        wram_write(gb, addr, val);
+    else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
+        vram_write(gb, addr, val);
+    else if (addr < 0x8000)
+        mbc_write(gb, gb->rom.infos.type, addr, val);
 }
