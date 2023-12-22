@@ -9,7 +9,8 @@ add_library(${PROJECT_NAME} SHARED src/cpu.c
                                     src/ppu.c
                                     src/sdl.c
                                     src/disassembler.c
-                                    src/dma.c)
+                                    src/dma.c
+                                    src/joypad.c)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
