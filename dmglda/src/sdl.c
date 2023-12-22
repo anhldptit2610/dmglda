@@ -72,6 +72,8 @@ void sdl_drawframe(gb_t *gb)
 void sdl_handle_input(gb_t *gb)
 {
     SDL_Event event;
+    const uint8_t *current_key_state = NULL;
+
     while (SDL_PollEvent(&event)) {
         switch (event.type) {
         case SDL_QUIT:
@@ -81,39 +83,39 @@ void sdl_handle_input(gb_t *gb)
             break;
         }
     }
-    const uint8_t *current_key_state = SDL_GetKeyboardState(NULL);
+    current_key_state = SDL_GetKeyboardState(NULL);
     if (current_key_state[SDL_SCANCODE_Z] && gb->joypad.a)
-        gb->joypad.a = 0;
+        joypad_press_button(gb, JOYPAD_A);
     else if (current_key_state[SDL_SCANCODE_X] && gb->joypad.b)
-        gb->joypad.b = 0; 
+        joypad_press_button(gb, JOYPAD_B);
     else if (current_key_state[SDL_SCANCODE_SPACE] && gb->joypad.select)
-        gb->joypad.select = 0; 
+        joypad_press_button(gb, JOYPAD_SELECT);
     else if (current_key_state[SDL_SCANCODE_RETURN] && gb->joypad.start)
-        gb->joypad.start = 0; 
+        joypad_press_button(gb, JOYPAD_START);
     else if (current_key_state[SDL_SCANCODE_UP] && gb->joypad.up)
-        gb->joypad.up = 0; 
+        joypad_press_button(gb, JOYPAD_UP);
     else if (current_key_state[SDL_SCANCODE_DOWN] && gb->joypad.down)
-        gb->joypad.down = 0; 
+        joypad_press_button(gb, JOYPAD_DOWN);
     else if (current_key_state[SDL_SCANCODE_LEFT] && gb->joypad.left)
-        gb->joypad.left = 0; 
+        joypad_press_button(gb, JOYPAD_LEFT);
     else if (current_key_state[SDL_SCANCODE_RIGHT] && gb->joypad.right)
-        gb->joypad.right = 0; 
+        joypad_press_button(gb, JOYPAD_RIGHT);
     else if (!current_key_state[SDL_SCANCODE_Z] && !gb->joypad.a)
-        gb->joypad.a = 1;
+        joypad_release_button(gb, JOYPAD_A);
     else if (!current_key_state[SDL_SCANCODE_X] && !gb->joypad.b)
-        gb->joypad.b = 1; 
+        joypad_release_button(gb, JOYPAD_B);
     else if (!current_key_state[SDL_SCANCODE_SPACE] && !gb->joypad.select)
-        gb->joypad.select = 1; 
+        joypad_release_button(gb, JOYPAD_SELECT);
     else if (!current_key_state[SDL_SCANCODE_RETURN] && !gb->joypad.start)
-        gb->joypad.start = 1; 
+        joypad_release_button(gb, JOYPAD_START);
     else if (!current_key_state[SDL_SCANCODE_UP] && !gb->joypad.up)
-        gb->joypad.up = 1; 
+        joypad_release_button(gb, JOYPAD_UP);
     else if (!current_key_state[SDL_SCANCODE_DOWN] && !gb->joypad.down)
-        gb->joypad.down = 1; 
+        joypad_release_button(gb, JOYPAD_DOWN);
     else if (!current_key_state[SDL_SCANCODE_LEFT] && !gb->joypad.left)
-        gb->joypad.left = 1; 
+        joypad_release_button(gb, JOYPAD_LEFT);
     else if (!current_key_state[SDL_SCANCODE_RIGHT] && !gb->joypad.right)
-        gb->joypad.right = 1; 
+        joypad_release_button(gb, JOYPAD_RIGHT);
 
 }
 
