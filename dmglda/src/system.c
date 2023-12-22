@@ -9,6 +9,7 @@ gb_t *gb_init(void)
         GB_Error("[ERROR] can't initialize the system.\n");
         exit(EXIT_FAILURE);
     }
+    gb->quit = false;
     return gb;
 }
 
@@ -57,4 +58,14 @@ void gb_init_state_after_bootrom(gb_t *gb)
 
     gb->rom.boot_rom_unmapped = false;
     gb->rom.rom_loaded = false;
+
+    gb->joypad.p1 = 0xff;
+    gb->joypad.a = 1;
+    gb->joypad.b = 1;
+    gb->joypad.select = 1;
+    gb->joypad.start = 1;
+    gb->joypad.right = 1;
+    gb->joypad.left = 1;
+    gb->joypad.up = 1;
+    gb->joypad.down = 1;
 }

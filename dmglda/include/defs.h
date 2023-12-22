@@ -209,6 +209,28 @@ enum COLOR {
     COLOR_BLACK,
 };
 
+typedef enum MBC_TYPE {
+    MBC0,
+    MBC1,
+} mbc_type_t;
+
+typedef enum JOYPAD_MODE {
+    JOYPAD_MODE_BUTTONS = (1U << 5),
+    JOYPAD_MODE_D_PAD = (1U << 4),
+    JOYPAD_MODE_RELEASE,
+} joypad_mode_t;
+
+enum JOYPAD_KEYS {
+    JOYPAD_A = (1U << 0),
+    JOYPAD_B = (1U << 1),
+    JOYPAD_SELECT = (1U << 2),
+    JOYPAD_START = (1U << 3),
+    JOYPAD_RIGHT = (1U << 4),
+    JOYPAD_LEFT = (1U << 5),
+    JOYPAD_UP = (1U << 6),
+    JOYPAD_DOWN = (1U << 7),
+};
+
 typedef struct fifo_entry {
     uint8_t color : 2;
     uint8_t palette;

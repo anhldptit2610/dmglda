@@ -650,21 +650,3 @@ void ppu_init(gb_t *gb)
     gb->ppu.rendered_sprites = 0;
 }
 
-/* vram_write and vram_read only used by cpu, not ppu */
-
-void vram_write(gb_t *gb, uint16_t addr, uint8_t val)
-{
-    if (gb->ppu.mode != PPU_MODE_DRAWING)
-        gb->mem[addr] = val;
-}
-
-uint8_t vram_read(gb_t *gb, uint16_t addr)
-{
-    uint8_t ret;
-
-    if (gb->ppu.mode == PPU_MODE_DRAWING)
-        ret = 0xff;
-    else 
-        ret = gb->mem[addr];
-    return ret;
-}

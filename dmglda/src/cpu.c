@@ -1742,6 +1742,7 @@ void cpu_step(gb_t *gb)
 {
     bool interrupt = false;
 
+    //sdl_handle_input(gb);
     switch (gb->cpu.mode) {
     case CPU_MODE_NORMAL:
         cpu_execute_instruction(gb, gb->cpu.mode);

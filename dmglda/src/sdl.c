@@ -69,6 +69,54 @@ void sdl_drawframe(gb_t *gb)
     gb->ppu.need_refresh = false;
 }
 
+void sdl_handle_input(gb_t *gb)
+{
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+        switch (event.type) {
+        case SDL_QUIT:
+            gb->quit = true;
+            break;
+        default:
+            break;
+        }
+    }
+    const uint8_t *current_key_state = SDL_GetKeyboardState(NULL);
+    if (current_key_state[SDL_SCANCODE_Z] && gb->joypad.a)
+        gb->joypad.a = 0;
+    else if (current_key_state[SDL_SCANCODE_X] && gb->joypad.b)
+        gb->joypad.b = 0; 
+    else if (current_key_state[SDL_SCANCODE_SPACE] && gb->joypad.select)
+        gb->joypad.select = 0; 
+    else if (current_key_state[SDL_SCANCODE_RETURN] && gb->joypad.start)
+        gb->joypad.start = 0; 
+    else if (current_key_state[SDL_SCANCODE_UP] && gb->joypad.up)
+        gb->joypad.up = 0; 
+    else if (current_key_state[SDL_SCANCODE_DOWN] && gb->joypad.down)
+        gb->joypad.down = 0; 
+    else if (current_key_state[SDL_SCANCODE_LEFT] && gb->joypad.left)
+        gb->joypad.left = 0; 
+    else if (current_key_state[SDL_SCANCODE_RIGHT] && gb->joypad.right)
+        gb->joypad.right = 0; 
+    else if (!current_key_state[SDL_SCANCODE_Z] && !gb->joypad.a)
+        gb->joypad.a = 1;
+    else if (!current_key_state[SDL_SCANCODE_X] && !gb->joypad.b)
+        gb->joypad.b = 1; 
+    else if (!current_key_state[SDL_SCANCODE_SPACE] && !gb->joypad.select)
+        gb->joypad.select = 1; 
+    else if (!current_key_state[SDL_SCANCODE_RETURN] && !gb->joypad.start)
+        gb->joypad.start = 1; 
+    else if (!current_key_state[SDL_SCANCODE_UP] && !gb->joypad.up)
+        gb->joypad.up = 1; 
+    else if (!current_key_state[SDL_SCANCODE_DOWN] && !gb->joypad.down)
+        gb->joypad.down = 1; 
+    else if (!current_key_state[SDL_SCANCODE_LEFT] && !gb->joypad.left)
+        gb->joypad.left = 1; 
+    else if (!current_key_state[SDL_SCANCODE_RIGHT] && !gb->joypad.right)
+        gb->joypad.right = 1; 
+
+}
+
 void sdl_cleanup(void)
 {
     SDL_DestroyRenderer(sdl.renderer);

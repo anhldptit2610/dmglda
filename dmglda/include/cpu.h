@@ -6,6 +6,7 @@
 #include "timer.h"
 #include "ppu.h"
 #include "dma.h"
+#include "sdl.h"
 
 void cpu_tick(gb_t *gb);
 void cpu_tick4(gb_t *gb);

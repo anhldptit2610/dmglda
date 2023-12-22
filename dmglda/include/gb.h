@@ -4,7 +4,7 @@
 
 typedef struct gb {
     uint8_t mem[0x10000];
-
+    bool quit;
     struct cpu {
         struct cpu_reg {
             uint8_t a;
@@ -115,6 +115,18 @@ typedef struct gb {
         uint16_t start_addr;
         uint8_t current_transfer_byte;
     } dma;
+
+    struct joypad {
+        uint8_t p1;
+        bool a;
+        bool b; 
+        bool select;
+        bool start;
+        bool right;
+        bool left;
+        bool up;
+        bool down;
+    } joypad;
 } gb_t;
 
 gb_t *gb_init(void);

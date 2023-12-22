@@ -12,6 +12,7 @@
         "sdl.h": "c",
         "gb.h": "c",
         "disassembler.h": "c",
-        "dma.h": "c"
+        "dma.h": "c",
+        "joypad.h": "c"
     }
 }
