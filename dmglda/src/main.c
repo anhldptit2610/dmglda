@@ -6,8 +6,7 @@
 int main(int argc, char **argv)
 {
     gb_t *gb = gb_init();
-    bool quit = false;
-    SDL_Event event;
+
     uint64_t start_frame_time, end_frame_time;
     float elapsed_ms;
 
@@ -17,17 +16,9 @@ int main(int argc, char **argv)
         rom_load(gb, argv[1]);
         rom_get_info(gb);
     }
-    while (!quit) {
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-            case SDL_QUIT:
-                quit = true;
-                break;
-            default:
-                break;
-            }
-        }
+    while (!gb->quit) {
         start_frame_time = SDL_GetTicks64();
+        sdl_handle_input(gb);
         while (gb->ppu.need_refresh == false)
             cpu_step(gb);
         sdl_drawframe(gb);
