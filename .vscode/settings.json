@@ -13,6 +13,50 @@
         "gb.h": "c",
         "disassembler.h": "c",
         "dma.h": "c",
-        "joypad.h": "c"
-    }
+        "joypad.h": "c",
+        "mbc.h": "c"
+    },
+
+    "vim.easymotion": true,
+    "vim.incsearch": true,
+    "vim.useSystemClipboard": true,
+    "vim.useCtrlKeys": true,
+    "vim.hlsearch": true,
+    "vim.insertModeKeyBindings": [
+      {
+        "before": ["j", "j"],
+        "after": ["<Esc>"]
+      }
+    ],
+        "vim.normalModeKeyBindingsNonRecursive": [
+          {
+            "before": ["<leader>", "d"],
+            "after": ["d", "d"]
+          },
+          {
+            "before": ["<C-n>"],
+            "commands": [":nohl"]
+          },
+          {
+            "before": ["K"],
+            "commands": ["lineBreakInsert"],
+            "silent": true
+          }
+        ],
+        "vim.leader": "<space>",
+        "vim.handleKeys": {
+          "<C-a>": false,
+          "<C-f>": false,
+          "<C-d>": true,
+          "<C-k>": false,
+          "<C-c>": false,
+          "<C-u>": false,
+          "<C-v>": false,
+          "<C-x>": false,
+          "<C-h>": false,
+          "<C-p>": false,
+        },      
+        "extensions.experimental.affinity": {
+          "vscodevim.vim": 1
+        },
 }
