@@ -211,7 +211,9 @@ enum COLOR {
 
 typedef enum MBC_TYPE {
     MBC0,
-    MBC1,
+    MBC1_NONE,
+    MBC1_RAM,
+    MBC1_BATTERY_BUFFERED_RAM,
 } mbc_type_t;
 
 typedef enum JOYPAD_MODE {

@@ -116,6 +116,7 @@ void rom_get_info(gb_t *gb)
     gb->rom.infos.mask_rom_version_number = gb->rom.content[0x014c];
     gb->rom.infos.header_checksum = gb->rom.content[0x014d];
     gb->rom.infos.global_checksum = U16(gb->rom.content[0x014f], gb->rom.content[0x014e]);
+    gb->rom.rom_bank = gb->rom.rom_size / (16 * KiB);
 
     GB_Log("Cartridge informations\n");
     GB_Log("-------------------------------\n");
@@ -124,6 +125,7 @@ void rom_get_info(gb_t *gb)
     GB_Log("SGB flag: 0x%02x\n", gb->rom.infos.sgb_flag);
     GB_Log("Type: %s\n", cart_types[gb->rom.infos.type]);
     GB_Log("ROM size: %s\n", rom_size[gb->rom.content[0x0148]]);
+    GB_Log("ROM bank: %d\n", gb->rom.rom_bank);
     GB_Log("RAM size: %s\n", ram_size[gb->rom.infos.ram_size_index]);
     GB_Log("Destination code: 0x%02x\n", gb->rom.infos.destination_code);
     GB_Log("Old licensee code: 0x%02x\n", gb->rom.infos.old_licensee_code);
@@ -135,11 +137,5 @@ void rom_get_info(gb_t *gb)
 
 uint8_t rom_read(gb_t *gb, uint16_t addr)
 {
-    uint8_t ret;
-
-    if (!gb->rom.rom_loaded)
-        ret = 0xff;
-    else
-        ret = gb->rom.content[addr];
-    return ret;
+    return (!gb->rom.rom_loaded) ? 0xff : gb->rom.content[addr];
 }

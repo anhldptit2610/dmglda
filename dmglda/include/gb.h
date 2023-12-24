@@ -44,6 +44,7 @@ typedef struct gb {
         uint8_t *content;
         bool boot_rom_unmapped;
         bool rom_loaded;
+        uint8_t rom_bank;
         uint32_t rom_size;
     } rom;
 
@@ -127,6 +128,15 @@ typedef struct gb {
         bool up;
         bool down;
     } joypad;
+
+    struct mbc {
+        struct mbc1 {
+            bool ram_enable;
+            uint8_t rom_bank_number;
+            uint8_t ram_bank_number;
+            bool banking_mode;
+        } mbc1;
+    } mbc;
 } gb_t;
 
 gb_t *gb_init(void);
