@@ -130,7 +130,10 @@ uint8_t mbc_read(gb_t *gb, mbc_type_t mbc_type, uint16_t addr)
     case MBC1_NONE:
     case MBC1_RAM:
     case MBC1_BATTERY_BUFFERED_RAM:
-        ret = mbc1_read(gb, addr);
+        if (gb->rom.rom_bank == 2)
+            ret = mbc0_read(gb, addr);
+        else
+            ret = mbc1_read(gb, addr);
         break;
     default:
         break;
