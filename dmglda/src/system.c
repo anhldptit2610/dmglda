@@ -72,5 +72,5 @@ void gb_init_state_after_bootrom(gb_t *gb)
     gb->mbc.mbc1.banking_mode = 0;
     gb->mbc.mbc1.ram_bank_number = 0;
     gb->mbc.mbc1.ram_enable = 0;
-    gb->mbc.mbc1.rom_bank_number = 0;
+    gb->mbc.mbc1.rom_bank_number = 1;
 }

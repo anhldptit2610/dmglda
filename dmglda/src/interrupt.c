@@ -52,15 +52,14 @@ void interrupt_handler(gb_t *gb)
 {
     if ((gb->intr.intr_enable & INTERRUPT_SOURCE_VBLANK) && (gb->intr.intr_flag & INTERRUPT_SOURCE_VBLANK))
         isr(gb, INTERRUPT_SOURCE_VBLANK, INTERRUPT_VBLANK_VECTOR);
-    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_LCD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_LCD))
+    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_LCD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_LCD))
         isr(gb, INTERRUPT_SOURCE_LCD, INTERRUPT_LCD_VECTOR);
-    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_TIMER) && (gb->intr.intr_flag & INTERRUPT_SOURCE_TIMER))
+    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_TIMER) && (gb->intr.intr_flag & INTERRUPT_SOURCE_TIMER))
         isr(gb, INTERRUPT_SOURCE_TIMER, INTERRUPT_TIMER_VECTOR);
-    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_SERIAL) && (gb->intr.intr_flag & INTERRUPT_SOURCE_SERIAL))
+    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_SERIAL) && (gb->intr.intr_flag & INTERRUPT_SOURCE_SERIAL))
         isr(gb, INTERRUPT_SOURCE_SERIAL, INTERRUPT_SERIAL_VECTOR);
-    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_JOYPAD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_JOYPAD)) {
+    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_JOYPAD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_JOYPAD))
         isr(gb, INTERRUPT_SOURCE_JOYPAD, INTERRUPT_JOYPAD_VECTOR);
-    }
 }
 
 bool interrupt_check(gb_t *gb)

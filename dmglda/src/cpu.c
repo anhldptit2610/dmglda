@@ -18,22 +18,23 @@ void cpu_tick4(gb_t *gb)
 static uint8_t cpu_read8(gb_t *gb, uint16_t addr)
 {
     cpu_tick4(gb);
-    if (gb->dma.mode == DMA_MODE_TRANSFER)
+    if (gb->dma.mode == DMA_MODE_TRANSFER) {
         if ((addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR) ||
             (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR) ||
             (addr <= 0x7fff))
             return gb->dma.current_transfer_byte;
+    }
     return mmu_read(gb, addr);
 }
 
 static void cpu_write8(gb_t *gb, uint16_t addr, uint8_t val)
 {
     cpu_tick4(gb);
-    if (gb->dma.mode == DMA_MODE_TRANSFER)
+    if (gb->dma.mode == DMA_MODE_TRANSFER) {
         if ((addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR) ||
-            (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR) ||
-            (addr <= 0x7fff))
+            (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR))
         return;
+    }
     mmu_write(gb, addr, val);
 }
 
@@ -88,7 +89,7 @@ static void set_r8(gb_t *gb, cpu_r_t r, uint8_t val)
         gb->cpu.regs.l = val;
         break;
     case CPU_R_F:
-        gb->cpu.regs.f = val;
+        gb->cpu.regs.f = val & 0xf0;
         break;
     default:
         break;
@@ -1742,7 +1743,6 @@ void cpu_step(gb_t *gb)
 {
     bool interrupt = false;
 
-    //sdl_handle_input(gb);
     switch (gb->cpu.mode) {
     case CPU_MODE_NORMAL:
         cpu_execute_instruction(gb, gb->cpu.mode);
@@ -1750,8 +1750,10 @@ void cpu_step(gb_t *gb)
         break;
     case CPU_MODE_HALT:
         cpu_tick4(gb);
-        if (is_any_interrupt_pending(gb))
+        if (is_any_interrupt_pending(gb)) {
             gb->cpu.mode = CPU_MODE_NORMAL;
+            interrupt = interrupt_check(gb);
+        }
         break;
     case CPU_MODE_HALT_BUG:
         gb->cpu.mode = CPU_MODE_NORMAL;

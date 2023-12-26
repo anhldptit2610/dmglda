@@ -20,11 +20,12 @@ uint8_t mbc0_read(gb_t *gb, uint16_t addr)
 uint8_t mbc1_read(gb_t *gb, uint16_t addr)
 {
     uint8_t ret;
+    uint32_t read_addr;
 
     if (addr >= 0x0000 && addr <= 0x3fff) {
-        ret = gb->rom.content[addr];
+            ret = gb->rom.content[addr];
     } else if (addr >= 0x4000 && addr <= 0x7fff) {
-        ret = gb->rom.content[0x4000 * gb->mbc.mbc1.rom_bank_number + (addr - 0x4000)];
+        ret = gb->rom.content[((addr - 0x4000) + 0x4000 * gb->mbc.mbc1.rom_bank_number)];
     } else if (addr >= 0xa000 && addr <= 0xbfff) {
         if (!gb->mbc.mbc1.ram_enable)
             ret = 0xff;
@@ -38,13 +39,13 @@ void mbc1_write(gb_t *gb, uint16_t addr, uint8_t val)
     if (addr >= 0x0000 && addr <= 0x1fff) {
         gb->mbc.mbc1.ram_enable = ((val & 0x0f) == 0xa) ? true : false;
     } else if (addr >= 0x2000 && addr <= 0x3fff) {
-        uint8_t tmp = (!(val & 0x1f)) ? (val & 0x1f) + 1 : val & 0x1f;
-        tmp &= mbc1_bit_mask[gb->rom.rom_bank];
-        gb->mbc.mbc1.rom_bank_number = tmp;
+        uint8_t tmp = (!(val & 0x1f)) ? 1 : val & 0x1f;
+        gb->mbc.mbc1.rom_bank_number = tmp & 0b00011111;
     } else if (addr >= 0x4000 && addr <= 0x5fff) {
         gb->mbc.mbc1.ram_bank_number = val & 0x03;
     } else if (addr >= 0x6000 && addr <= 0x7fff) {
         gb->mbc.mbc1.banking_mode = val & 0x01;
-    }
+    } else if (addr >= 0xa000 && addr <= 0xbfff) {
 
+    }
 }

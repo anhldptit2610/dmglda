@@ -134,7 +134,7 @@ typedef struct gb {
             bool ram_enable;
             uint8_t rom_bank_number;
             uint8_t ram_bank_number;
-            bool banking_mode;
+            uint8_t banking_mode;
         } mbc1;
     } mbc;
 } gb_t;

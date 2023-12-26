@@ -70,7 +70,7 @@ uint8_t io_read(gb_t *gb, uint16_t addr)
         ret = gb->dma.reg;
     } else if (addr == JOYPAD_JOYP_REGISTER) {
         ret = joypad_read(gb);
-    } else if (addr == 0xff01) {
+    } else {
         ret = 0xff;
     }
     return ret;
@@ -128,6 +128,8 @@ uint8_t mbc_read(gb_t *gb, mbc_type_t mbc_type, uint16_t addr)
         ret = mbc0_read(gb, addr);        
         break;
     case MBC1_NONE:
+    case MBC1_RAM:
+    case MBC1_BATTERY_BUFFERED_RAM:
         ret = mbc1_read(gb, addr);
         break;
     default:
@@ -141,6 +143,8 @@ void mbc_write(gb_t *gb, mbc_type_t mbc_type, uint16_t addr, uint8_t val)
     case MBC0:
         break;
     case MBC1_NONE:
+    case MBC1_RAM:
+    case MBC1_BATTERY_BUFFERED_RAM:
         mbc1_write(gb, addr, val);
         break;
     default:
@@ -172,7 +176,7 @@ uint8_t mmu_read(gb_t *gb, uint16_t addr)
     else if (addr < 0x8000 && gb->rom.boot_rom_unmapped)
         ret = mbc_read(gb, gb->rom.infos.type, addr);
     else if (addr >= 0x100 && addr < 0x8000 && !gb->rom.boot_rom_unmapped)
-        ret = mbc_read(gb, gb->rom.infos.type, addr);
+        ret = rom_read(gb, addr);
     else if (addr >= 0x0000 && addr <= 0x00ff && !gb->rom.boot_rom_unmapped)
         ret = bootrom[addr];
     else
@@ -199,6 +203,6 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
         wram_write(gb, addr, val);
     else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
         vram_write(gb, addr, val);
-    else if (addr < 0x8000 && gb->rom.boot_rom_unmapped)
+    else if (addr < 0x8000)
         mbc_write(gb, gb->rom.infos.type, addr, val);
 }

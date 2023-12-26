@@ -73,24 +73,25 @@ static void handle_error(char *log)
 
 void rom_load(gb_t *gb, char *rom_path)
 {
-    int fd;
+    FILE *fp = fopen(rom_path, "r");
     struct stat statbuf;
 
-    if ((fd = open(rom_path, O_RDONLY)) < 0)
+    if (!fp)
         handle_error("[ERROR] Can't open the rom file\n");
-    if (fstat(fd, &statbuf) < 0)
-        handle_error("[ERROR] fstat\n");
-    gb->rom.rom_size = statbuf.st_size;
-    if ((gb->rom.content = mmap(0, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0)) == MAP_FAILED)
-        handle_error("[ERROR] mmap\n");
+    fseek(fp, 0, SEEK_END);
+    gb->rom.rom_size = ftell(fp);
+    rewind(fp);
+    gb->rom.content = malloc(gb->rom.rom_size);
+    fread(gb->rom.content, 1, gb->rom.rom_size, fp);
+    fclose(fp);
     gb->rom.rom_loaded = true;
     GB_Log("[INFO] ROM has been loaded\n");    
 }
 
 void rom_unload(gb_t *gb)
 {
-    if (munmap(gb->rom.content, gb->rom.rom_size) == -1)
-        GB_Error("rom unloading failed\n");
+    free(gb->rom.content);
+    gb->rom.content = NULL;
 }
 
 void rom_get_info(gb_t *gb)
