@@ -182,7 +182,8 @@ void scan_oam(gb_t *gb)
         uint16_t sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
         if (gb->mem[oam_entry_addr + 1] > 0 && gb->mem[oam_entry_addr + 1] < 160 &&
             gb->ppu.ly + 16 >= gb->mem[oam_entry_addr] &&
-            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height) {
+            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height &&
+            gb->ppu.oam_buffer_size < 10) {
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].y_pos = gb->mem[oam_entry_addr];
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].x_pos = gb->mem[oam_entry_addr + 1];
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].tile_index = gb->mem[oam_entry_addr + 2];

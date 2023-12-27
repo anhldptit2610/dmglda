@@ -94,7 +94,7 @@ typedef struct gb {
         int rendered_sprites;
 
         /* oam components */
-        oam_entry_t oam_buffer[40];
+        oam_entry_t oam_buffer[10];
         uint16_t current_oam_entry;
         uint16_t oam_buffer_size;
 
