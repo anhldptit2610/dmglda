@@ -26,26 +26,24 @@ typedef struct gb {
     } cpu;
 
     struct rom {
-        struct rom_info {
-            char title[17];
-            uint8_t manufacturer_code[4];
-            uint8_t cgb_flag;
-            uint8_t new_licensee_code[2];
-            uint8_t sgb_flag;
-            uint8_t type;
-            int rom_size;
-            int ram_size_index;
-            uint8_t destination_code : 1;
-            uint8_t old_licensee_code;
-            uint8_t mask_rom_version_number;
-            uint8_t header_checksum;
-            uint16_t global_checksum;
-        } infos;
+        char title[17];
+        uint8_t manufacturer_code[4];
+        uint8_t cgb_flag;
+        uint8_t new_licensee_code[2];
+        uint8_t sgb_flag;
+        uint8_t type;
+        uint8_t destination_code : 1;
+        uint8_t old_licensee_code;
+        uint8_t mask_rom_version_number;
+        uint8_t header_checksum;
+        uint16_t global_checksum;
         uint8_t *content;
         bool boot_rom_unmapped;
         bool rom_loaded;
         uint8_t rom_bank;
         uint32_t rom_size;
+        int ram_size_index;
+        uint32_t ram_size;
     } rom;
 
     struct interrupt {
@@ -96,7 +94,7 @@ typedef struct gb {
         int rendered_sprites;
 
         /* oam components */
-        oam_entry_t oam_buffer[10];
+        oam_entry_t oam_buffer[40];
         uint16_t current_oam_entry;
         uint16_t oam_buffer_size;
 
@@ -135,6 +133,9 @@ typedef struct gb {
             uint8_t rom_bank_number;
             uint8_t ram_bank_number;
             uint8_t banking_mode;
+            uint8_t *ram;
+            bool has_battery;
+            bool need_save;
         } mbc1;
     } mbc;
 } gb_t;

@@ -19,6 +19,8 @@ void gb_deinit(gb_t *gb)
     clear_fifo(gb, FIFO_TYPE_SPRITE);
     rom_unload(gb);
     free(gb->ppu.frame_buffer);
+    if (gb->mbc.mbc1.ram != NULL)
+        free(gb->mbc.mbc1.ram);
     free(gb);
 }
 

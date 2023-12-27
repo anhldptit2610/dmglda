@@ -15,6 +15,7 @@ int main(int argc, char **argv)
     if (argc == 2) {
         rom_load(gb, argv[1]);
         rom_get_info(gb);
+        mbc_init(gb);
     }
     while (!gb->quit) {
         start_frame_time = SDL_GetTicks64();

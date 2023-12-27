@@ -119,42 +119,6 @@ uint8_t wram_read(gb_t *gb, uint16_t addr)
     return ret;
 }
 
-uint8_t mbc_read(gb_t *gb, mbc_type_t mbc_type, uint16_t addr)
-{
-    uint8_t ret;
-
-    switch (mbc_type) {
-    case MBC0:
-        ret = mbc0_read(gb, addr);        
-        break;
-    case MBC1_NONE:
-    case MBC1_RAM:
-    case MBC1_BATTERY_BUFFERED_RAM:
-        if (gb->rom.rom_bank == 2)
-            ret = mbc0_read(gb, addr);
-        else
-            ret = mbc1_read(gb, addr);
-        break;
-    default:
-        break;
-    }
-}
-
-void mbc_write(gb_t *gb, mbc_type_t mbc_type, uint16_t addr, uint8_t val)
-{
-    switch (mbc_type) {
-    case MBC0:
-        break;
-    case MBC1_NONE:
-    case MBC1_RAM:
-    case MBC1_BATTERY_BUFFERED_RAM:
-        mbc1_write(gb, addr, val);
-        break;
-    default:
-        break;
-    }
-}
-
 uint8_t mmu_read(gb_t *gb, uint16_t addr)
 {
     uint8_t ret;
@@ -176,8 +140,10 @@ uint8_t mmu_read(gb_t *gb, uint16_t addr)
         ret = wram_read(gb, addr);
     else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
         ret = vram_read(gb, addr);
+    else if (addr >= 0xa000 && addr <= 0xbfff && gb->rom.boot_rom_unmapped)
+        ret = mbc_read(gb, gb->rom.type, addr);
     else if (addr < 0x8000 && gb->rom.boot_rom_unmapped)
-        ret = mbc_read(gb, gb->rom.infos.type, addr);
+        ret = mbc_read(gb, gb->rom.type, addr);
     else if (addr >= 0x100 && addr < 0x8000 && !gb->rom.boot_rom_unmapped)
         ret = rom_read(gb, addr);
     else if (addr >= 0x0000 && addr <= 0x00ff && !gb->rom.boot_rom_unmapped)
@@ -206,6 +172,8 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
         wram_write(gb, addr, val);
     else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
         vram_write(gb, addr, val);
+    else if (addr >= 0xa000 && addr <= 0xbfff)
+        mbc_write(gb, gb->rom.type, addr, val);
     else if (addr < 0x8000)
-        mbc_write(gb, gb->rom.infos.type, addr, val);
+        mbc_write(gb, gb->rom.type, addr, val);
 }

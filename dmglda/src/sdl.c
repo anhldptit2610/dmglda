@@ -78,6 +78,7 @@ void sdl_handle_input(gb_t *gb)
         switch (event.type) {
         case SDL_QUIT:
             gb->quit = true;
+            mbc_save_data(gb);
             break;
         default:
             break;
