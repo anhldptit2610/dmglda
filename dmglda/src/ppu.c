@@ -1,5 +1,3 @@
-// TODO: implement DMA bus conflict after sprite rendering running
-
 #include "ppu.h"
 
 // rgba format
@@ -160,6 +158,21 @@ void sort_oam_buffer(gb_t *gb)
     qsort(gb->ppu.oam_buffer, gb->ppu.oam_buffer_size, sizeof(oam_entry_t), cmp_func);
 }
 
+void log_oam_content(gb_t *gb)
+{
+    FILE *fp = fopen("oam_content.txt", "w");
+    if (!fp) {
+        GB_Error("Can't create file\n");
+    }
+    fprintf(fp, "OAM content:\n");
+    for (int i = 0; i < gb->ppu.oam_buffer_size; i++) {
+        fprintf(fp, "y: %02x x: %02x tile: %02x attr: %02x\n",
+                    gb->ppu.oam_buffer[i].y_pos, gb->ppu.oam_buffer[i].x_pos,
+                    gb->ppu.oam_buffer[i].tile_index, gb->ppu.oam_buffer[i].attribute);
+    }
+    fclose(fp);
+}
+
 void scan_oam(gb_t *gb)
 {
     static int i;
@@ -169,8 +182,7 @@ void scan_oam(gb_t *gb)
         uint16_t sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
         if (gb->mem[oam_entry_addr + 1] > 0 && gb->mem[oam_entry_addr + 1] < 160 &&
             gb->ppu.ly + 16 >= gb->mem[oam_entry_addr] &&
-            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height &&
-            gb->ppu.oam_buffer_size < 10) {
+            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height) {
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].y_pos = gb->mem[oam_entry_addr];
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].x_pos = gb->mem[oam_entry_addr + 1];
                 gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].tile_index = gb->mem[oam_entry_addr + 2];
@@ -296,15 +308,14 @@ void fetch_sprite_pixels(gb_t *gb)
 {
     static uint16_t addr, offset;
     uint16_t current_oam_entry = gb->ppu.current_oam_entry;
-    uint16_t tile_index = gb->ppu.oam_buffer[current_oam_entry].tile_index;
-    uint16_t y_pos = gb->ppu.oam_buffer[current_oam_entry].y_pos;
+    uint8_t tile_index = gb->ppu.oam_buffer[current_oam_entry].tile_index;
+    uint8_t y_pos = gb->ppu.oam_buffer[current_oam_entry].y_pos;
     int sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
     bool y_flip = gb->ppu.oam_buffer[current_oam_entry].attribute & OAM_ATTRIBUTE_Y_FLIP;
-    bool top_of_big_sprite = gb->ppu.ly < (y_pos - 16) + 8;
+    bool top_of_big_sprite = gb->ppu.ly < ((y_pos - 16) + 8);
 
     if (!gb->ppu.sprite_pf.is_active)
         return;
-
     if (sprite_height == 16) {
         uint8_t top = tile_index & 0xfe;
         uint8_t bottom = tile_index | 0x01;
@@ -322,8 +333,14 @@ void fetch_sprite_pixels(gb_t *gb)
         gb->ppu.sprite_pf.state++;
         break;
     case 2:
-        offset = (!y_flip) ? 2 * ((gb->ppu.ly + 16 - y_pos))
-                        : 2 * (sprite_height - 1 - ((gb->ppu.ly + 16 - y_pos)));
+        if (!y_flip) {
+            uint8_t tmp = (sprite_height == 16 && !top_of_big_sprite) ? 8 : 0;
+            offset = 2 * ((gb->ppu.ly + 16 - (y_pos + tmp)) % sprite_height); 
+        } else if (y_flip) {
+            offset = (sprite_height == 16) 
+                    ? 2 * ((sprite_height - 1 - (gb->ppu.ly + 16 - (y_pos))) % 8)
+                    : 2 * (sprite_height - 1 - ((gb->ppu.ly + 16 - y_pos) % sprite_height));
+        }
         addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
         gb->ppu.sprite_pf.tile_data_low = gb->mem[addr + offset];
         gb->ppu.sprite_pf.state++;
