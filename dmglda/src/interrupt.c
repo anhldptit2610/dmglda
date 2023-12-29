@@ -2,7 +2,7 @@
 
 bool is_any_interrupt_pending(gb_t *gb)
 {
-    return (gb->intr.intr_enable & gb->intr.intr_flag) ? 1 : 0;
+    return (gb->intr.intr_enable & gb->intr.intr_flag & 0x1f) ? 1 : 0;
 }
 
 void interrupt_write(gb_t *gb, uint16_t addr, uint8_t val)
