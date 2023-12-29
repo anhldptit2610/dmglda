@@ -12,10 +12,14 @@ int main(int argc, char **argv)
 
     sdl_init(gb);
     ppu_init(gb);
+    cpu_init(gb);
     if (argc == 2) {
         rom_load(gb, argv[1]);
         rom_get_info(gb);
         mbc_init(gb);
+    } else {
+        printf("Supply a ROM file please.\n");
+        exit(EXIT_FAILURE);
     }
     while (!gb->quit) {
         start_frame_time = SDL_GetTicks64();
@@ -27,7 +31,7 @@ int main(int argc, char **argv)
         elapsed_ms = (float)(end_frame_time - start_frame_time);
         SDL_Delay(16.67f > elapsed_ms ? 16.67f - elapsed_ms : 0);
     }
-    gb_deinit(gb);
+    gb_destroy(gb);
     sdl_cleanup();
     SDL_Quit();
     return 0;

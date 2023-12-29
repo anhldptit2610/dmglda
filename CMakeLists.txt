@@ -6,4 +6,5 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "")
 set(CMAKE_BUILD_TYPE Debug)
 
 add_subdirectory(dmglda)
+add_subdirectory(x86_64)
 add_subdirectory(testing)
