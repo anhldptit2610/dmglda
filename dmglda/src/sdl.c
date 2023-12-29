@@ -62,6 +62,10 @@ void sdl_set_renderer_color(uint32_t color)
 
 void sdl_drawframe(gb_t *gb)
 {
+    if (gb->ppu.first_frame_passed == false) {
+        gb->ppu.first_frame_passed = true;
+        return;
+    }
     SDL_RenderClear(sdl.renderer);
     SDL_UpdateTexture(sdl.texture, NULL, gb->ppu.frame_buffer, SCREEN_WIDTH * 4);
     SDL_RenderCopy(sdl.renderer, sdl.texture, NULL, NULL);
@@ -85,10 +89,10 @@ void sdl_handle_input(gb_t *gb)
         }
     }
     current_key_state = SDL_GetKeyboardState(NULL);
-    if (current_key_state[SDL_SCANCODE_Z] && gb->joypad.a)
-        joypad_press_button(gb, JOYPAD_A);
-    else if (current_key_state[SDL_SCANCODE_X] && gb->joypad.b)
+    if (current_key_state[SDL_SCANCODE_Z] && gb->joypad.b)
         joypad_press_button(gb, JOYPAD_B);
+    else if (current_key_state[SDL_SCANCODE_X] && gb->joypad.a)
+        joypad_press_button(gb, JOYPAD_A);
     else if (current_key_state[SDL_SCANCODE_SPACE] && gb->joypad.select)
         joypad_press_button(gb, JOYPAD_SELECT);
     else if (current_key_state[SDL_SCANCODE_RETURN] && gb->joypad.start)
@@ -101,10 +105,10 @@ void sdl_handle_input(gb_t *gb)
         joypad_press_button(gb, JOYPAD_LEFT);
     else if (current_key_state[SDL_SCANCODE_RIGHT] && gb->joypad.right)
         joypad_press_button(gb, JOYPAD_RIGHT);
-    else if (!current_key_state[SDL_SCANCODE_Z] && !gb->joypad.a)
-        joypad_release_button(gb, JOYPAD_A);
-    else if (!current_key_state[SDL_SCANCODE_X] && !gb->joypad.b)
+    else if (!current_key_state[SDL_SCANCODE_Z] && !gb->joypad.b)
         joypad_release_button(gb, JOYPAD_B);
+    else if (!current_key_state[SDL_SCANCODE_X] && !gb->joypad.a)
+        joypad_release_button(gb, JOYPAD_A);
     else if (!current_key_state[SDL_SCANCODE_SPACE] && !gb->joypad.select)
         joypad_release_button(gb, JOYPAD_SELECT);
     else if (!current_key_state[SDL_SCANCODE_RETURN] && !gb->joypad.start)

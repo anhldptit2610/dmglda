@@ -49,6 +49,8 @@ void io_write(gb_t *gb, uint16_t addr, uint8_t val)
         joypad_write(gb, val);
     } else if (addr == 0xff50 && val == 1) {
         gb->rom.boot_rom_unmapped = true;
+        gb->intr.ime = false;
+        gb->intr.ime_ready_on = false;
     } 
 }
 
@@ -150,6 +152,7 @@ uint8_t mmu_read(gb_t *gb, uint16_t addr)
         ret = bootrom[addr];
     else
         ret = 0xff;
+    // ret = gb->mem[addr];
     return ret;
 }
 
@@ -176,4 +179,5 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
         mbc_write(gb, gb->rom.type, addr, val);
     else if (addr < 0x8000)
         mbc_write(gb, gb->rom.type, addr, val);
+    // gb->mem[addr] = val;
 }

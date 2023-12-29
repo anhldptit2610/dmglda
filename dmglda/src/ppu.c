@@ -1,7 +1,7 @@
 #include "ppu.h"
 
 // rgba format
-uint32_t default_color[] = { 0x9bbc0fff, 0x8bac0fff, 0x306230ff, 0x0f380fff };
+uint32_t default_color[] = {0x9bbc0fff, 0x8bac0fff, 0x306230ff, 0x0f380fff};
 
 void set_ppu_mode(gb_t *gb, ppu_mode_t mode)
 {
@@ -31,7 +31,8 @@ uint32_t get_color_from_palette(gb_t *gb, palette_t palette, uint8_t color)
 
 void clear_fifo(gb_t *gb, fifo_type_t fifo_type)
 {
-    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN)
+                    ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
 
     if (fifo->size > 0) {
         fifo_entry_t *tmp = NULL;
@@ -47,7 +48,6 @@ void clear_fifo(gb_t *gb, fifo_type_t fifo_type)
         fifo->head = NULL;
         fifo->tail = NULL;
     }
-
     fifo = NULL;
 }
 
@@ -69,6 +69,7 @@ void prepare_for_mode3(gb_t *gb)
     if (gb->ppu.wy == gb->ppu.ly && !gb->ppu.this_frame_has_window)
         gb->ppu.this_frame_has_window = true;
     gb->ppu.current_x = 0;
+
     clear_fifo(gb, FIFO_TYPE_BG_WIN);
     clear_fifo(gb, FIFO_TYPE_SPRITE);
 }
@@ -93,7 +94,8 @@ fifo_entry_t *create_new_fifo_entry(gb_t *gb, uint8_t color, uint8_t palette,
 void push_a_pixel_to_fifo(gb_t *gb, fifo_type_t fifo_type, uint8_t color, uint8_t palette,
                                         uint8_t sprite_priority, uint8_t bg_priority)
 {
-    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) 
+                    ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
     fifo_entry_t *new;
 
     if (fifo->size > 8)
@@ -113,8 +115,10 @@ void push_a_pixel_to_fifo(gb_t *gb, fifo_type_t fifo_type, uint8_t color, uint8_
 int pop_a_pixel_from_fifo(gb_t *gb, fifo_type_t fifo_type)
 {
     fifo_entry_t *tmp = NULL;
-    fifo_entry_t *pixel = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_win_pixel : &gb->ppu.sprite_pixel;
-    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
+    fifo_entry_t *pixel = (fifo_type == FIFO_TYPE_BG_WIN) 
+                    ? &gb->ppu.bg_win_pixel : &gb->ppu.sprite_pixel;
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_BG_WIN) 
+                    ? &gb->ppu.bg_win_fifo : &gb->ppu.sprite_fifo;
 
     if (fifo->size <= 0)
         return -1;
@@ -135,7 +139,8 @@ int pop_a_pixel_from_fifo(gb_t *gb, fifo_type_t fifo_type)
 
 fifo_entry_t *get_access_to_fifo_entry(gb_t *gb, fifo_type_t fifo_type, int n)
 {
-    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_SPRITE) ? &gb->ppu.sprite_fifo : &gb->ppu.bg_win_fifo;
+    pixel_fifo_t *fifo = (fifo_type == FIFO_TYPE_SPRITE) 
+                    ? &gb->ppu.sprite_fifo : &gb->ppu.bg_win_fifo;
     fifo_entry_t *tmp = fifo->head;
 
     while (n > 0) {
@@ -181,17 +186,18 @@ void scan_oam(gb_t *gb)
         uint16_t oam_entry_addr = OAM_START_ADDR + i * 4;
         uint16_t sprite_height = (gb->ppu.lcdc & LCDC_SPRITE_SIZE) ? 16 : 8;
         if (gb->mem[oam_entry_addr + 1] > 0 && gb->mem[oam_entry_addr + 1] < 160 &&
-            gb->ppu.ly + 16 >= gb->mem[oam_entry_addr] &&
-            gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height &&
-            gb->ppu.oam_buffer_size < 10) {
-                gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].y_pos = gb->mem[oam_entry_addr];
-                gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].x_pos = gb->mem[oam_entry_addr + 1];
-                gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].tile_index = gb->mem[oam_entry_addr + 2];
-                gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].attribute = gb->mem[oam_entry_addr + 3];
-                gb->ppu.oam_buffer_size++;
+                gb->ppu.ly + 16 >= gb->mem[oam_entry_addr] &&
+                gb->ppu.ly + 16 < gb->mem[oam_entry_addr] + sprite_height &&
+                gb->ppu.oam_buffer_size < 10) {
+            gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].y_pos = gb->mem[oam_entry_addr];
+            gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].x_pos = gb->mem[oam_entry_addr + 1];
+            gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].tile_index = gb->mem[oam_entry_addr + 2];
+            gb->ppu.oam_buffer[gb->ppu.oam_buffer_size].attribute = gb->mem[oam_entry_addr + 3];
+            gb->ppu.oam_buffer_size++;
         }
         i++;
     }
+    
     if (gb->ppu.tick == 80) {
         set_ppu_mode(gb, PPU_MODE_DRAWING);
         sort_oam_buffer(gb);
@@ -270,7 +276,8 @@ void fetch_bg_win_pixels(gb_t *gb)
         break;
     case 2:
         addr = (gb->ppu.lcdc & LCDC_BG_WINDOW_TILESET) ? 0x8000 : 0x9000;
-        offset = (window_triggered) ? 2 * (gb->ppu.window_line_cnt % 8) : 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
+        offset = (window_triggered) ? 2 * (gb->ppu.window_line_cnt % 8) 
+                                    : 2 * ((gb->ppu.ly + gb->ppu.scy) % 8);
         addr = (addr == 0x8000) ? addr + 16 * (uint8_t)gb->ppu.bg_win_pf.tile_number 
                                 : addr + 16 * (int8_t)gb->ppu.bg_win_pf.tile_number;
         gb->ppu.bg_win_pf.tile_data_low = gb->mem[addr + offset];
@@ -281,7 +288,7 @@ void fetch_bg_win_pixels(gb_t *gb)
         break;
     case 4:
         gb->ppu.bg_win_pf.tile_data_high = gb->mem[addr + offset + 1];
-        if (gb->ppu.bg_win_pf.reset_status) {     /* if it's the first time of a scanline, reset to step 1. */
+        if (gb->ppu.bg_win_pf.reset_status) {     // first time of a scanline -> reset to step 1.
             gb->ppu.bg_win_pf.state = 0;
             gb->ppu.bg_win_pf.reset_status = false;
         } else {
@@ -336,11 +343,11 @@ void fetch_sprite_pixels(gb_t *gb)
     case 2:
         if (!y_flip) {
             uint8_t tmp = (sprite_height == 16 && !top_of_big_sprite) ? 8 : 0;
-            offset = 2 * ((gb->ppu.ly + 16 - (y_pos + tmp)) % sprite_height); 
+            offset = 2 * (gb->ppu.ly + 16 - (y_pos + tmp)); 
         } else if (y_flip) {
             offset = (sprite_height == 16) 
-                    ? 2 * ((sprite_height - 1 - (gb->ppu.ly + 16 - (y_pos))) % 8)
-                    : 2 * (sprite_height - 1 - ((gb->ppu.ly + 16 - y_pos) % sprite_height));
+                    ? 2 * ((sprite_height - 1 - (gb->ppu.ly + 16 - y_pos)) % 8)
+                    : 2 * (sprite_height - 1 - ((gb->ppu.ly + 16 - y_pos)));
         }
         addr = 0x8000 + 16 * (uint8_t)gb->ppu.sprite_pf.tile_number;
         gb->ppu.sprite_pf.tile_data_low = gb->mem[addr + offset];
@@ -380,8 +387,8 @@ int poll_oam_buffer(gb_t *gb)
         return -1;
     for (int i = 0; i < gb->ppu.oam_buffer_size; i++) {
         if ((gb->ppu.oam_buffer[i].x_pos <= gb->ppu.current_x + 8) &&
-            (gb->ppu.oam_buffer[i].rendered == false) &&
-            (gb->ppu.rendered_sprites < 10)) {
+                (gb->ppu.oam_buffer[i].rendered == false) &&
+                (gb->ppu.rendered_sprites < 10)) {
             gb->ppu.current_oam_entry = i;
             gb->ppu.oam_buffer[i].rendered = true;
             gb->ppu.rendered_sprites++;
@@ -396,7 +403,7 @@ int poll_oam_buffer(gb_t *gb)
 void check_the_window(gb_t *gb)
 {
     if ((gb->ppu.lcdc & LCDC_WINDOW_ENABLE) && (gb->ppu.this_frame_has_window) &&
-        (gb->ppu.current_x >= gb->ppu.wx - 7) && (!gb->ppu.draw_window_this_line)) {
+            (gb->ppu.current_x >= gb->ppu.wx - 7) && (!gb->ppu.draw_window_this_line)) {
         gb->ppu.draw_window_this_line = true;
         gb->ppu.bg_win_pf.state = 0;
         gb->ppu.bg_win_pf.x = 0;
@@ -415,10 +422,22 @@ void fetch_pixels(gb_t *gb)
     fetch_bg_win_pixels(gb);
 }
 
+uint8_t get_color_id(gb_t *gb, uint8_t color, uint8_t palette, fifo_type_t fifo)
+{
+    uint8_t ret;
+
+    if (fifo == FIFO_TYPE_BG_WIN) {
+        ret = (gb->ppu.bgp >> (color * 2)) & 0x03;
+    } else if (fifo == FIFO_TYPE_SPRITE) {
+        uint8_t sprite_palete = (palette == PALETTE_OBP0) ? gb->ppu.obp0 : gb->ppu.obp1;
+        ret = (sprite_palete >> (color * 2)) & 0x03;
+    }
+    return ret;
+}
+
 void output_pixels(gb_t *gb)
 {
     int ret1, ret2;
-    uint8_t id;
     static int i = 0;
     unsigned int color;
 
@@ -432,9 +451,8 @@ void output_pixels(gb_t *gb)
         }
         ret2 = pop_a_pixel_from_fifo(gb, FIFO_TYPE_SPRITE);
         if (!ret2) {
-            id = (gb->ppu.bgp >> (gb->ppu.bg_win_pixel.color * 2)) & 0x03;
             if ((!gb->ppu.sprite_pixel.color) ||
-                (gb->ppu.sprite_pixel.bg_priority && id > 0)) {
+                (gb->ppu.sprite_pixel.bg_priority && gb->ppu.bg_win_pixel.color > 0)) {
                 color = get_color_from_palette(gb, PALETTE_BGP, gb->ppu.bg_win_pixel.color);
                 gb->ppu.frame_buffer[gb->ppu.ly * 160 + gb->ppu.current_x] = 
                         (gb->ppu.lcdc & LCDC_BG_ENABLED) ? color : default_color[0];
@@ -472,40 +490,32 @@ void drawing(gb_t *gb)
     output_pixels(gb);
 }
 
-bool check_stat_interrupt(gb_t *gb)
+void check_stat_interrupt(gb_t *gb)
 {
     bool stat_interrupt_line = false, old_stat_interrupt_line = gb->ppu.stat_interrupt_line;
 
-    if ((gb->ppu.stat & STAT_LYC) && (gb->ppu.ly == gb->ppu.lyc) && 
-        !(gb->ppu.stat_interrupt_happen & STAT_LYC)) {
+    if ((gb->ppu.stat & STAT_LYC) && (gb->ppu.ly == gb->ppu.lyc)) {
         stat_interrupt_line = true;
-        gb->ppu.stat_interrupt_happen |= STAT_LYC;
     }
-    if ((gb->ppu.stat & STAT_MODE2) && (gb->ppu.mode == PPU_MODE_OAM_SCAN) && 
-        !(gb->ppu.stat_interrupt_happen & STAT_MODE2)) {
+    if ((gb->ppu.stat & STAT_MODE2) && (gb->ppu.mode == PPU_MODE_OAM_SCAN)) {
         stat_interrupt_line = true;
-        gb->ppu.stat_interrupt_happen |= STAT_MODE2;
     }
-    if ((gb->ppu.stat & STAT_MODE1) && (gb->ppu.mode == PPU_MODE_VBLANK) && 
-        !(gb->ppu.stat_interrupt_happen & STAT_MODE1)) {
+    if ((gb->ppu.stat & STAT_MODE1) && (gb->ppu.mode == PPU_MODE_VBLANK)) {
         stat_interrupt_line = true;
-        gb->ppu.stat_interrupt_happen |= STAT_MODE1;
     }
-    if ((gb->ppu.stat & STAT_MODE0) && (gb->ppu.mode == PPU_MODE_HBLANK) && 
-        !(gb->ppu.stat_interrupt_happen & STAT_MODE0)) {
+    if ((gb->ppu.stat & STAT_MODE0) && (gb->ppu.mode == PPU_MODE_HBLANK)) {
         stat_interrupt_line = true;
-        gb->ppu.stat_interrupt_happen |= STAT_MODE0;
     }
     gb->ppu.stat_interrupt_line = stat_interrupt_line;
-    return (!old_stat_interrupt_line && stat_interrupt_line) ? 1 : 0;
+    if (!old_stat_interrupt_line && stat_interrupt_line) 
+        interrupt_request(gb, INTERRUPT_SOURCE_LCD);
 }
 
 void ppu_tick(gb_t *gb)
 {
     if (gb->ppu.lcdc & LCDC_LCD_POWER) {
+        check_stat_interrupt(gb);
         gb->ppu.tick++;
-        if (check_stat_interrupt(gb))
-            interrupt_request(gb, INTERRUPT_SOURCE_LCD);
         switch (gb->ppu.mode) {
         case PPU_MODE_OAM_SCAN:
             scan_oam(gb);
@@ -526,29 +536,38 @@ void ppu_tick(gb_t *gb)
                 gb->ppu.ly++;
                 gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY : 
                                                             gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
-                gb->ppu.stat_interrupt_happen = 0;
                 gb->ppu.tick = 0;
             }
             break;
         case PPU_MODE_VBLANK:
+            if (gb->ppu.reach_line_153 && gb->ppu.ticks_after_line_153 < 4) {
+                gb->ppu.ticks_after_line_153++;
+            } else if (gb->ppu.reach_line_153 && gb->ppu.ticks_after_line_153 == 4) {
+                gb->ppu.ly = 0;
+                gb->ppu.reach_line_153 = false;
+            }
             if (gb->ppu.tick == 456) {
-                if (gb->ppu.ly == 153) {
+                if (gb->ppu.ly == 0) {
                     set_ppu_mode(gb, PPU_MODE_OAM_SCAN);
                     gb->ppu.need_refresh = true;
                     gb->ppu.bg_win_pf.reset_status = true;
-                    gb->ppu.ly = 0;
                 } else {
                     gb->ppu.ly++;
+                    if (gb->ppu.ly == 153) {
+                        gb->ppu.reach_line_153 = true;
+                        gb->ppu.ticks_after_line_153 = 0;
+                    }
                 }
                 gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY : 
                                                             gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
-                gb->ppu.stat_interrupt_happen = 0;
                 gb->ppu.tick = 0;
             }
             break;
         default:
             break;
         }
+    } else {
+        gb->ppu.first_frame_passed = false;
     }
 }
 
@@ -576,6 +595,8 @@ void ppu_write(gb_t *gb, uint16_t addr, uint8_t val)
         break;
     case PPU_LYC_REGISTER:
         gb->ppu.lyc = val; 
+        gb->ppu.stat = (gb->ppu.ly == gb->ppu.lyc) ? gb->ppu.stat | STAT_LYC_EQUAL_LY 
+                                                   : gb->ppu.stat & ~STAT_LYC_EQUAL_LY;
         break;
     case PPU_WX_REGISTER:
         gb->ppu.wx = val;
@@ -666,5 +687,12 @@ void ppu_init(gb_t *gb)
     gb->ppu.bg_win_pf.reset_status = true;
 
     gb->ppu.rendered_sprites = 0;
+
+    gb->ppu.stat_interrupt_line = false;
+
+    gb->ppu.first_frame_passed = false;
+
+    gb->ppu.reach_line_153 = false;
+    gb->ppu.ticks_after_line_153 = 0;
 }
 

@@ -9,10 +9,10 @@ void interrupt_write(gb_t *gb, uint16_t addr, uint8_t val)
 {
     switch (addr) {
     case INTERRUPT_IE_REGISTER:
-        gb->intr.intr_enable = val;
+        gb->intr.intr_enable = val | 0xe0;
         break;
     case INTERRUPT_IF_REGISTER:
-        gb->intr.intr_flag = val;
+        gb->intr.intr_flag = val | 0xe0;
         break;
     default:
         break;
@@ -41,10 +41,10 @@ static void isr(gb_t *gb, interrupt_source_t source, uint16_t handler_addr)
 {
     gb->intr.intr_flag &= ~source;
     gb->intr.ime = false;
-    cpu_tick4(gb);
-    cpu_tick4(gb);
-    cpu_stack_push(gb, gb->cpu.regs.pc);
-    cpu_tick4(gb);
+    cpu_cycle(gb);
+    cpu_cycle(gb);
+    stack_push(gb, gb->cpu.regs.pc);
+    cpu_cycle(gb);
     gb->cpu.regs.pc = handler_addr;
 }
 
@@ -52,13 +52,13 @@ void interrupt_handler(gb_t *gb)
 {
     if ((gb->intr.intr_enable & INTERRUPT_SOURCE_VBLANK) && (gb->intr.intr_flag & INTERRUPT_SOURCE_VBLANK))
         isr(gb, INTERRUPT_SOURCE_VBLANK, INTERRUPT_VBLANK_VECTOR);
-    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_LCD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_LCD))
+    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_LCD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_LCD))
         isr(gb, INTERRUPT_SOURCE_LCD, INTERRUPT_LCD_VECTOR);
-    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_TIMER) && (gb->intr.intr_flag & INTERRUPT_SOURCE_TIMER))
+    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_TIMER) && (gb->intr.intr_flag & INTERRUPT_SOURCE_TIMER))
         isr(gb, INTERRUPT_SOURCE_TIMER, INTERRUPT_TIMER_VECTOR);
-    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_SERIAL) && (gb->intr.intr_flag & INTERRUPT_SOURCE_SERIAL))
+    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_SERIAL) && (gb->intr.intr_flag & INTERRUPT_SOURCE_SERIAL))
         isr(gb, INTERRUPT_SOURCE_SERIAL, INTERRUPT_SERIAL_VECTOR);
-    if ((gb->intr.intr_enable & INTERRUPT_SOURCE_JOYPAD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_JOYPAD))
+    else if ((gb->intr.intr_enable & INTERRUPT_SOURCE_JOYPAD) && (gb->intr.intr_flag & INTERRUPT_SOURCE_JOYPAD))
         isr(gb, INTERRUPT_SOURCE_JOYPAD, INTERRUPT_JOYPAD_VECTOR);
 }
 
