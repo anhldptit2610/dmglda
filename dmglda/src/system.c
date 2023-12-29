@@ -13,7 +13,7 @@ gb_t *gb_init(void)
     return gb;
 }
 
-void gb_deinit(gb_t *gb)
+void gb_destroy(gb_t *gb)
 {
     clear_fifo(gb, FIFO_TYPE_BG_WIN);
     clear_fifo(gb, FIFO_TYPE_SPRITE);

@@ -50,6 +50,7 @@ typedef struct gb {
         bool ime;
         uint8_t intr_flag;
         uint8_t intr_enable;
+        bool ime_ready_on;
     } intr;
 
     struct timer {
@@ -104,7 +105,11 @@ typedef struct gb {
         unsigned int *frame_buffer;
         uint8_t discard_bits;
         bool stat_interrupt_line;
-        uint8_t stat_interrupt_happen;
+
+        bool first_frame_passed;
+
+        int ticks_after_line_153;
+        bool reach_line_153;
     } ppu;
 
     struct dma {
@@ -127,6 +132,10 @@ typedef struct gb {
         bool down;
     } joypad;
 
+    struct apu {
+        uint8_t nr52;
+    } apu;
+
     struct mbc {
         struct mbc1 {
             bool ram_enable;
@@ -141,5 +150,5 @@ typedef struct gb {
 } gb_t;
 
 gb_t *gb_init(void);
-void gb_deinit(gb_t *gb);
+void gb_destroy(gb_t *gb);
 void gb_init_state_after_bootrom(gb_t *gb);
