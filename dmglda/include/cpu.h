@@ -9,7 +9,8 @@
 #include "sdl.h"
 
 void cpu_tick(gb_t *gb);
-void cpu_tick4(gb_t *gb);
+void cpu_cycle(gb_t *gb);
 void cpu_step(gb_t *gb);
-void cpu_stack_push(gb_t *gb, uint16_t val);
-uint16_t cpu_stack_pop(gb_t *gb);
+void stack_push(gb_t *gb, uint16_t val);
+uint16_t stack_pop(gb_t *gb);
+void cpu_init(gb_t *gb);
