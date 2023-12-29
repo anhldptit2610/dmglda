@@ -156,9 +156,6 @@ int main(int argc, char *argv[])
     }
     fgetc(fp);      // read [ character
 
-    // setup GB system
-    gb = gb_init();
-
 
     // read 1000 json tests per file
     final_state.mem_index = 0;
@@ -167,6 +164,7 @@ int main(int argc, char *argv[])
     // setup and run the test
     int ret = 0;
     for (int i = 0; i < 1000; i++) {
+        gb = gb_init();
         final_state.mem_index = 0;
         setup_test(json_buffer[i], gb, &final_state);
         cpu_step(gb); 
@@ -192,7 +190,9 @@ int main(int argc, char *argv[])
             }
             printf("\n");
             ret = 1;
+            exit(EXIT_FAILURE);
         }
+        gb_destroy(gb);
     }
     if (!ret)
         printf("test %s ok.\n", argv[1]);
