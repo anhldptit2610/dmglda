@@ -11,7 +11,7 @@
 #define MiB             1048576
 #define MSB(n)      (((uint16_t)(n) >> 8) & 0x00ff)
 #define LSB(n)      ((uint16_t)(n) & 0x00ff)
-#define U16(lsb, msb)   ((uint16_t)(msb) << 8) | (uint16_t)(lsb)
+#define U16(lsb, msb)   (((uint16_t)(msb) << 8) | (uint16_t)(lsb))
 #define GB_Log(...)    fprintf(stdout, __VA_ARGS__)
 #define GB_Error(...)  fprintf(stderr, __VA_ARGS__)
 
@@ -87,25 +87,25 @@
 
 #define DMA_REGISTER                0xff46
 
-typedef enum CPU_R {
-    CPU_R_B,
-    CPU_R_C,
-    CPU_R_D,
-    CPU_R_E,
-    CPU_R_H,
-    CPU_R_L,
-    CPU_R_F,
-    CPU_R_A,
-} cpu_r_t;
+typedef enum CPU_R8 {
+    R8_B,
+    R8_C,
+    R8_D,
+    R8_E,
+    R8_H,
+    R8_L,
+    R8_F,
+    R8_A,
+} cpu_r8_t;
 
-typedef enum CPU_RR {
-    CPU_RR_BC,
-    CPU_RR_DE,
-    CPU_RR_HL,
-    CPU_RR_AF,
-    CPU_RR_SP,
-    CPU_RR_PC,
-} cpu_rr_t;
+typedef enum CPU_R16 {
+    R16_BC,
+    R16_DE,
+    R16_HL,
+    R16_AF,
+    R16_SP,
+    R16_PC,
+} cpu_r16_t;
 
 typedef enum CPU_FLAG {
     CPU_FLAG_Z = (1U << 7),
