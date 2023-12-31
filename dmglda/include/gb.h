@@ -26,24 +26,26 @@ typedef struct gb {
     } cpu;
 
     struct rom {
-        char title[17];
-        uint8_t manufacturer_code[4];
-        uint8_t cgb_flag;
-        uint8_t new_licensee_code[2];
-        uint8_t sgb_flag;
-        uint8_t type;
-        uint8_t destination_code : 1;
-        uint8_t old_licensee_code;
-        uint8_t mask_rom_version_number;
-        uint8_t header_checksum;
-        uint16_t global_checksum;
-        uint8_t *content;
+        struct rom_info {
+            char name[17];
+            uint8_t manufacturer_code[4];
+            uint8_t cgb_flag;
+            uint8_t new_licensee_code[2];
+            uint8_t sgb_flag;
+            uint8_t type;
+            uint8_t destination_code : 1;
+            uint8_t old_licensee_code;
+            uint8_t mask_rom_version_number;
+            uint8_t header_checksum;
+            uint16_t global_checksum;
+            uint32_t size;
+            uint8_t bank_number;
+            uint32_t ram_size;
+            uint8_t ram_size_index;
+        } infos;
+        uint8_t *data;
         bool boot_rom_unmapped;
         bool rom_loaded;
-        uint8_t rom_bank;
-        uint32_t rom_size;
-        int ram_size_index;
-        uint32_t ram_size;
     } rom;
 
     struct interrupt {

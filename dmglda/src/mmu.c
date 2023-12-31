@@ -143,9 +143,9 @@ uint8_t mmu_read(gb_t *gb, uint16_t addr)
     else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
         ret = vram_read(gb, addr);
     else if (addr >= 0xa000 && addr <= 0xbfff && gb->rom.boot_rom_unmapped)
-        ret = mbc_read(gb, gb->rom.type, addr);
+        ret = mbc_read(gb, gb->rom.infos.type, addr);
     else if (addr < 0x8000 && gb->rom.boot_rom_unmapped)
-        ret = mbc_read(gb, gb->rom.type, addr);
+        ret = mbc_read(gb, gb->rom.infos.type, addr);
     else if (addr >= 0x100 && addr < 0x8000 && !gb->rom.boot_rom_unmapped)
         ret = rom_read(gb, addr);
     else if (addr >= 0x0000 && addr <= 0x00ff && !gb->rom.boot_rom_unmapped)
@@ -176,8 +176,8 @@ void mmu_write(gb_t *gb, uint16_t addr, uint8_t val)
     else if (addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR)
         vram_write(gb, addr, val);
     else if (addr >= 0xa000 && addr <= 0xbfff)
-        mbc_write(gb, gb->rom.type, addr, val);
+        mbc_write(gb, gb->rom.infos.type, addr, val);
     else if (addr < 0x8000)
-        mbc_write(gb, gb->rom.type, addr, val);
+        mbc_write(gb, gb->rom.infos.type, addr, val);
     // gb->mem[addr] = val;
 }

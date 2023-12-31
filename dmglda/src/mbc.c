@@ -24,18 +24,18 @@ uint8_t mbc1_read(gb_t *gb, uint16_t addr)
     uint32_t read_addr;
 
     if (addr >= 0x0000 && addr <= 0x3fff) {
-        read_addr = (!(gb->rom.rom_bank >= 64 && gb->mbc.mbc1.banking_mode == 1)) ? addr :
+        read_addr = (!(gb->rom.infos.bank_number >= 64 && gb->mbc.mbc1.banking_mode == 1)) ? addr :
                     addr + 0x4000 * (gb->mbc.mbc1.ram_bank_number << 5);
-        ret = gb->rom.content[read_addr];
+        ret = gb->rom.data[read_addr];
     } else if (addr >= 0x4000 && addr <= 0x7fff) {
-        read_addr = (!(gb->rom.rom_bank >= 64)) ? (addr - 0x4000) + 0x4000 * gb->mbc.mbc1.rom_bank_number
+        read_addr = (!(gb->rom.infos.bank_number >= 64)) ? (addr - 0x4000) + 0x4000 * gb->mbc.mbc1.rom_bank_number
                     : (addr - 0x4000) + 0x4000 * (gb->mbc.mbc1.rom_bank_number + (gb->mbc.mbc1.ram_bank_number << 5));
-        ret = gb->rom.content[read_addr];
+        ret = gb->rom.data[read_addr];
     } else if (addr >= 0xa000 && addr <= 0xbfff) {
         if (!gb->mbc.mbc1.ram_enable) {
             ret = 0xff;
         } else {
-            if (gb->rom.ram_size == 32 * KiB && gb->mbc.mbc1.banking_mode == 1)
+            if (gb->rom.infos.ram_size == 32 * KiB && gb->mbc.mbc1.banking_mode == 1)
                 ret = gb->mbc.mbc1.ram[(addr - 0xa000) + 0x2000 * gb->mbc.mbc1.ram_bank_number];
             else
                 ret = gb->mbc.mbc1.ram[addr - 0xa000];
@@ -50,7 +50,7 @@ void mbc1_write(gb_t *gb, uint16_t addr, uint8_t val)
         gb->mbc.mbc1.ram_enable = ((val & 0x0f) == 0x0a) ? true : false;
     } else if (addr >= 0x2000 && addr <= 0x3fff) {
         uint8_t tmp = (!(val & 0x1f)) ? 1 : val & 0x1f;
-        gb->mbc.mbc1.rom_bank_number = (tmp & 0b00011111) & mbc1_bit_mask[gb->rom.rom_bank];
+        gb->mbc.mbc1.rom_bank_number = (tmp & 0b00011111) & mbc1_bit_mask[gb->rom.infos.bank_number];
     } else if (addr >= 0x4000 && addr <= 0x5fff) {
         gb->mbc.mbc1.ram_bank_number = val & 0x03;
     } else if (addr >= 0x6000 && addr <= 0x7fff) {
@@ -58,7 +58,7 @@ void mbc1_write(gb_t *gb, uint16_t addr, uint8_t val)
     } else if (addr >= 0xa000 && addr <= 0xbfff) {
         if (!gb->mbc.mbc1.ram_enable)
             return;
-        if (gb->rom.ram_size == 32 * KiB && gb->mbc.mbc1.banking_mode == 1)
+        if (gb->rom.infos.ram_size == 32 * KiB && gb->mbc.mbc1.banking_mode == 1)
             gb->mbc.mbc1.ram[(addr - 0xa000) + 0x2000 * gb->mbc.mbc1.ram_bank_number] = val;
         else
             gb->mbc.mbc1.ram[addr - 0xa000] = val;
@@ -76,7 +76,7 @@ uint8_t mbc_read(gb_t *gb, mbc_type_t mbc_type, uint16_t addr)
     case MBC1_NONE:
     case MBC1_RAM:
     case MBC1_BATTERY_BUFFERED_RAM:
-        if (gb->rom.rom_bank == 2)
+        if (gb->rom.infos.bank_number == 2)
             ret = mbc0_read(gb, addr);
         else
             ret = mbc1_read(gb, addr);
@@ -116,13 +116,13 @@ void mbc1_save_ram(gb_t *gb)
 {
     char *save_file;
 
-    asprintf(&save_file, "%s.sav", gb->rom.title);
+    asprintf(&save_file, "%s.sav", gb->rom.infos.name);
     FILE *fp = fopen(save_file, "w");
     if (!fp) {
         GB_Error("[ERROR Can't create save file\n");
         return;
     }
-    fwrite(gb->mbc.mbc1.ram, sizeof(uint8_t), gb->rom.ram_size, fp);
+    fwrite(gb->mbc.mbc1.ram, sizeof(uint8_t), gb->rom.infos.ram_size, fp);
     fclose(fp);
 }
 
@@ -130,28 +130,31 @@ void mbc1_load_ram(gb_t *gb)
 {
     char *save_file;
 
-    asprintf(&save_file, "%s.sav", gb->rom.title);
+    asprintf(&save_file, "%s.sav", gb->rom.infos.name);
     FILE *fp = fopen(save_file, "r");
     if (!fp) {
-        GB_Log("[LOG] Save file for %s is unavailable.\n", gb->rom.title);
+        GB_Log("[LOG] Save file for %s is unavailable.\n", gb->rom.infos.name);
         return;
     }
-    fread(gb->mbc.mbc1.ram, sizeof(uint8_t), gb->rom.ram_size, fp);
+    fread(gb->mbc.mbc1.ram, sizeof(uint8_t), gb->rom.infos.ram_size, fp);
     fclose(fp);
 }
 
 void mbc_init(gb_t *gb)
 {
-    switch (gb->rom.type) {
+    switch (gb->rom.infos.type) {
     case MBC0:
         break;
     case MBC1_NONE:
+        gb->mbc.mbc1.rom_bank_number = 0;
         break;
     case MBC1_RAM:
-        mbc1_allocate_ram(gb, gb->rom.ram_size); 
+        mbc1_allocate_ram(gb, gb->rom.infos.ram_size); 
+        gb->mbc.mbc1.rom_bank_number = 0;
         break; 
     case MBC1_BATTERY_BUFFERED_RAM:
-        mbc1_allocate_ram(gb, gb->rom.ram_size); 
+        mbc1_allocate_ram(gb, gb->rom.infos.ram_size); 
+        gb->mbc.mbc1.rom_bank_number = 0;
         gb->mbc.mbc1.has_battery = true;
         gb->mbc.mbc1.need_save = false;
         mbc1_load_ram(gb);

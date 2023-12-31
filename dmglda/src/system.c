@@ -19,7 +19,7 @@ void gb_destroy(gb_t *gb)
     clear_fifo(gb, FIFO_TYPE_SPRITE);
     rom_unload(gb);
     free(gb->ppu.frame_buffer);
-    if (gb->mbc.mbc1.ram != NULL && gb->rom.ram_size > 0)
+    if (gb->mbc.mbc1.ram != NULL && gb->rom.infos.ram_size > 0)
         free(gb->mbc.mbc1.ram);
     gb->mbc.mbc1.ram = NULL;
     free(gb);

@@ -75,10 +75,10 @@ void rom_load(gb_t *gb, char *rom_path)
     if (!fp)
         handle_error("[ERROR] Can't open the rom file\n");
     fseek(fp, 0, SEEK_END);
-    gb->rom.rom_size = ftell(fp);
+    gb->rom.infos.size = ftell(fp);
     rewind(fp);
-    gb->rom.content = malloc(gb->rom.rom_size);
-    fread(gb->rom.content, 1, gb->rom.rom_size, fp);
+    gb->rom.data = malloc(gb->rom.infos.size);
+    fread(gb->rom.data, 1, gb->rom.infos.size, fp);
     fclose(fp);
     gb->rom.rom_loaded = true;
     GB_Log("[INFO] ROM has been loaded\n");    
@@ -86,54 +86,54 @@ void rom_load(gb_t *gb, char *rom_path)
 
 void rom_unload(gb_t *gb)
 {
-    free(gb->rom.content);
-    gb->rom.content = NULL;
+    free(gb->rom.data);
+    gb->rom.data = NULL;
 }
 
 void rom_get_info(gb_t *gb)
 {
     for (uint16_t addr = 0x0134; addr <= 0x0143; addr++) {
-        if (gb->rom.content[addr] == 0x00) {        // reach the end of the name
-            gb->rom.title[addr - 0x0134] = '\0';
+        if (gb->rom.data[addr] == 0x00) {        // reach the end of the name
+            gb->rom.infos.name[addr - 0x0134] = '\0';
             break;
         } else {
-            gb->rom.title[addr - 0x0134] = gb->rom.content[addr];
+            gb->rom.infos.name[addr - 0x0134] = gb->rom.data[addr];
         }
     }
     for (uint16_t addr = 0x013f; addr <= 0x0142; addr++)
-        gb->rom.manufacturer_code[addr - 0x013f] = gb->rom.content[addr];
-    gb->rom.cgb_flag = gb->rom.content[0x0143];
-    gb->rom.new_licensee_code[0] = gb->rom.content[0x0144];
-    gb->rom.new_licensee_code[1] = gb->rom.content[0x0145];
-    gb->rom.type = gb->rom.content[0x0147];
-    gb->rom.rom_size = 32 * KiB * (1 << gb->rom.content[0x0148]);
-    gb->rom.ram_size = external_ram_size[gb->rom.content[0x0149]].size;
-    gb->rom.ram_size_index = gb->rom.content[0x0149];
-    gb->rom.destination_code = gb->rom.content[0x014a];
-    gb->rom.old_licensee_code = gb->rom.content[0x014b];
-    gb->rom.mask_rom_version_number = gb->rom.content[0x014c];
-    gb->rom.header_checksum = gb->rom.content[0x014d];
-    gb->rom.global_checksum = U16(gb->rom.content[0x014f], gb->rom.content[0x014e]);
-    gb->rom.rom_bank = gb->rom.rom_size / (16 * KiB);
+        gb->rom.infos.manufacturer_code[addr - 0x013f] = gb->rom.data[addr];
+    gb->rom.infos.cgb_flag = gb->rom.data[0x0143];
+    gb->rom.infos.new_licensee_code[0] = gb->rom.data[0x0144];
+    gb->rom.infos.new_licensee_code[1] = gb->rom.data[0x0145];
+    gb->rom.infos.type = gb->rom.data[0x0147];
+    gb->rom.infos.size = 32 * KiB * (1 << gb->rom.data[0x0148]);
+    gb->rom.infos.ram_size_index = gb->rom.data[0x0149];
+    gb->rom.infos.ram_size = external_ram_size[gb->rom.infos.ram_size_index].size;
+    gb->rom.infos.destination_code = gb->rom.data[0x014a];
+    gb->rom.infos.old_licensee_code = gb->rom.data[0x014b];
+    gb->rom.infos.mask_rom_version_number = gb->rom.data[0x014c];
+    gb->rom.infos.header_checksum = gb->rom.data[0x014d];
+    gb->rom.infos.global_checksum = U16(gb->rom.data[0x014f], gb->rom.data[0x014e]);
+    gb->rom.infos.bank_number = gb->rom.infos.size / (16 * KiB);
 
     GB_Log("Cartridge informations\n");
     GB_Log("-------------------------------\n");
-    GB_Log("Name: %s\n", gb->rom.title);
-    GB_Log("New licensee code: %c%c\n", gb->rom.new_licensee_code[0], gb->rom.new_licensee_code[1]);
-    GB_Log("SGB flag: 0x%02x\n", gb->rom.sgb_flag);
-    GB_Log("Type: %s\n", cart_types[gb->rom.type]);
-    GB_Log("ROM size: %s\n", rom_size[gb->rom.content[0x0148]]);
-    GB_Log("ROM bank: %d\n", gb->rom.rom_bank);
-    GB_Log("RAM size: %s\n", external_ram_size[gb->rom.ram_size_index].name);
-    GB_Log("Destination code: 0x%02x\n", gb->rom.destination_code);
-    GB_Log("Old licensee code: 0x%02x\n", gb->rom.old_licensee_code);
-    GB_Log("Mask ROM version number: 0x%02x\n", gb->rom.mask_rom_version_number);
-    GB_Log("Header checksum: 0x%02x\n", gb->rom.header_checksum);
-    GB_Log("Global checksum: 0x%04x\n", gb->rom.global_checksum);
+    GB_Log("Name: %s\n", gb->rom.infos.name);
+    GB_Log("New licensee code: %c%c\n", gb->rom.infos.new_licensee_code[0], gb->rom.infos.new_licensee_code[1]);
+    GB_Log("SGB flag: 0x%02x\n", gb->rom.infos.sgb_flag);
+    GB_Log("Type: %s\n", cart_types[gb->rom.infos.type]);
+    GB_Log("ROM size: %s\n", rom_size[gb->rom.data[0x0148]]);
+    GB_Log("ROM bank: %d\n", gb->rom.infos.bank_number);
+    GB_Log("RAM size: %s\n", external_ram_size[gb->rom.infos.ram_size_index].name);
+    GB_Log("Destination code: 0x%02x\n", gb->rom.infos.destination_code);
+    GB_Log("Old licensee code: 0x%02x\n", gb->rom.infos.old_licensee_code);
+    GB_Log("Mask ROM version number: 0x%02x\n", gb->rom.infos.mask_rom_version_number);
+    GB_Log("Header checksum: 0x%02x\n", gb->rom.infos.header_checksum);
+    GB_Log("Global checksum: 0x%04x\n", gb->rom.infos.global_checksum);
     GB_Log("-------------------------------\n");
 }
 
 uint8_t rom_read(gb_t *gb, uint16_t addr)
 {
-    return (!gb->rom.rom_loaded) ? 0xff : gb->rom.content[addr];
+    return (!gb->rom.rom_loaded) ? 0xff : gb->rom.data[addr];
 }

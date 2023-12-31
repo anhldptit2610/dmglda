@@ -44,6 +44,10 @@ void timer_write(gb_t *gb, uint16_t addr, uint8_t val)
         gb->timer.tac = val;
         break;
     case TIMER_TIMA_REGISTER:
+        if (gb->timer.tima_overflow && gb->timer.ticks_after_tima_overflow < 4)
+            gb->timer.tima_overflow = false;
+        else if (gb->timer.tima_overflow && gb->timer.ticks_after_tima_overflow == 4)
+            return;
         gb->timer.tima = val;
         break;
     case TIMER_TMA_REGISTER:
@@ -60,7 +64,7 @@ uint8_t timer_read(gb_t *gb, uint16_t addr)
 
     switch (addr) {
     case TIMER_DIV_REGISTER:
-        ret = (uint8_t)(gb->timer.div >> 8);
+        ret = (gb->timer.div >> 8) & 0x00ff;
         break;
     case TIMER_TAC_REGISTER:
         ret = gb->timer.tac & 0x07;

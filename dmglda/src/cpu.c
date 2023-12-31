@@ -17,25 +17,28 @@ void cpu_cycle(gb_t *gb)
 
 static uint8_t cpu_read8(gb_t *gb, uint16_t addr)
 {
-    cpu_cycle(gb);
+    uint8_t ret;
+
     if (gb->dma.mode == DMA_MODE_TRANSFER) {
         if ((addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR) ||
             (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR) ||
             (addr <= 0x7fff))
             return gb->dma.current_transfer_byte;
     }
-    return mmu_read(gb, addr);
+    ret = mmu_read(gb, addr);
+    cpu_cycle(gb);
+    return ret;
 }
 
 static void cpu_write8(gb_t *gb, uint16_t addr, uint8_t val)
 {
-    cpu_cycle(gb);
     if (gb->dma.mode == DMA_MODE_TRANSFER) {
         if ((addr >= VRAM_START_ADDR && addr <= VRAM_END_ADDR) ||
             (addr >= WRAM_START_ADDR && addr <= WRAM_END_ADDR))
         return;
     }
     mmu_write(gb, addr, val);
+    cpu_cycle(gb);
 }
 
 static uint8_t get_r8(gb_t *gb, cpu_r8_t r)
