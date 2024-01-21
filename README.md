@@ -23,7 +23,7 @@ I can understand how those are created.
 ![Super Mario Land](/Images/super_mario_land.jpg)
 ![Metroid II - Return of Samus](/Images/metroid.jpg)
 ![Tetris](/Images/tetris.jpg)
-![Dr.Mario](/Images/dr_mario.jpg)
+![Kirby's Dream Land](/Images/kirby.jpg)
 
 ## TODO
 
