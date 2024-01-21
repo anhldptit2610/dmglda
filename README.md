@@ -20,10 +20,10 @@ I can understand how those are created.
 
 ## Images
 
-    ![Super Mario Land](./Images/super_mario_land.jpg)
-    ![Metroid II - Return of Samus](./Images/metroid.jpg)
-    ![Tetris](./Images/tetris.jpg)
-    ![Dr.Mario](./Images/dr_mario.jpg)
+    ![Super Mario Land](/Images/super_mario_land.jpg)
+    ![Metroid II - Return of Samus](/Images/metroid.jpg)
+    ![Tetris](/Images/tetris.jpg)
+    ![Dr.Mario](/Images/dr_mario.jpg)
 
 ## TODO
 
