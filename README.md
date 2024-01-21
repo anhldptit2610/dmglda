@@ -27,6 +27,6 @@ I can understand how those are created.
 
 ## TODO
 
-    * APU
-    * Weird tall sprites bugs in The Legends of Zelda
-    * Support more MBCs.
+ * APU
+ * Weird tall sprites bugs in The Legends of Zelda
+ * Support more MBCs.
