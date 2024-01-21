@@ -19,7 +19,7 @@ int sdl_init(gb_t *gb)
 
     sdl.window = SDL_CreateWindow("dmglda", 
             SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            SCREEN_WIDTH * 4, SCREEN_HEIGHT * 4, SDL_WINDOW_SHOWN);
+            SCREEN_WIDTH * 2, SCREEN_HEIGHT * 2, SDL_WINDOW_SHOWN);
     if (!sdl.window) {
         SDL_Log("Unable to create window: %s\n", SDL_GetError());
         error = 1;
